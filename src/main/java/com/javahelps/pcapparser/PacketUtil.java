@@ -2,6 +2,7 @@ package com.javahelps.pcapparser;
 
 import java.io.IOException;
 
+import io.pkts.buffer.Buffer;
 import io.pkts.packet.IPPacket;
 import io.pkts.packet.Packet;
 import io.pkts.packet.TCPPacket;
@@ -61,6 +62,5 @@ public class PacketUtil {
 		
 		return -1;
 	}
-
-
+	
 }
