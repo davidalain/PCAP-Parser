@@ -4,9 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import br.com.davidalain.pcapparser.mqtt.FactoryMQTT;
@@ -38,7 +37,8 @@ public class Main {
 		final Context ctx = new Context(CLIENT1_IP, BROKER1_IP, BROKER2_IP);
 		final FactoryMQTT factory = new FactoryMQTT();
 		final PrintStream log = new PrintStream(new File("log.txt"));
-		final PrintStream result = new PrintStream(new File("result.txt"));
+		final PrintStream resultTime = new PrintStream(new File("resultTime.txt"));
+		final PrintStream resultFlow = new PrintStream(new File("resultFlow.txt"));
 
 		pcap.loop(new PacketHandler() {
 			@Override
@@ -57,14 +57,12 @@ public class Main {
 
 					if (ethernetPacket.hasProtocol(Protocol.IPv4)) {
 
-						Flow flow = new Flow(packet);
+						Flow flow = new Flow(ethernetPacket);
 
 						log.println("time(us): " + PacketUtil.getArrivalTime(packet));
 						log.println("flow: " + flow);
 						ctx.addBytes(flow, PacketUtil.getArrivalTime(packet), ethernetPacket.getTotalLength());
 
-//						COLOCAR PRA IMPRIMIR A QUANTIDADE DE BYTES EM CADA FLOW POR CADA SEGUNDO
-						
 						log.println("Ethernet frame sizes: \t"+
 								"total=" + ethernetPacket.getTotalLength() + "\t"+
 								"header=" + (ethernetPacket.getTotalLength() - ethernetPayloadLen) + "\t"+
@@ -206,7 +204,7 @@ public class Main {
 			}
 			log.println("**************************************************************************");
 
-			result.println("============================= QoS = "+qos+" ===============================");
+			resultTime.println("============================= QoS = "+qos+" ===============================");
 			double avg = 0;
 			double median = 0;
 			double max = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.max(ctx.getTimes(qos));
@@ -215,18 +213,38 @@ public class Main {
 				avg += (double)l;
 			}
 			avg /= (double)ctx.getTimes(qos).size();
-			result.println(ctx.getTimes(qos));
-			result.println("max(us)="+max+", max(ms)="+(max/1000.0)+", max(s)="+(max/(1000.0*1000.0)));
-			result.println("min(us)="+min+", min(ms)="+(min/1000.0)+", min(s)="+(min/(1000.0*1000.0)));
-			result.println("avg(us)="+avg+", avg(ms)="+(avg/1000.0)+", avg(s)="+(avg/(1000.0*1000.0)));
+			resultTime.println(ctx.getTimes(qos));
+			resultTime.println("max(us)="+max+", max(ms)="+(max/1000.0)+", max(s)="+(max/(1000.0*1000.0)));
+			resultTime.println("min(us)="+min+", min(ms)="+(min/1000.0)+", min(s)="+(min/(1000.0*1000.0)));
+			resultTime.println("avg(us)="+avg+", avg(ms)="+(avg/1000.0)+", avg(s)="+(avg/(1000.0*1000.0)));
 
 			Collections.sort(ctx.getTimes(qos));
 			median = ctx.getTimes(qos).size() == 0 ? Double.NaN : ctx.getTimes(qos).get(ctx.getTimes(qos).size()/2);
-			result.println("median(us)="+median+", median(ms)="+(median/1000.0)+", median(s)="+(median/(1000.0*1000.0)));
-			result.println("========================================================================");
+			resultTime.println("median(us)="+median+", median(ms)="+(median/1000.0)+", median(s)="+(median/(1000.0*1000.0)));
+			resultTime.println("========================================================================");
 		}
 		log.println("########################################################################");
 
+		for(Entry<Flow, Map<Long, Long>> pairFlowThroughtput : ctx.getMapFlowThroughput().entrySet()) {
+			resultFlow.println("========================================================================");
+			resultFlow.println("Flow: " + pairFlowThroughtput.getKey());
+			resultFlow.println();
+			resultFlow.println("second; bytes"); //CSV like
+			
+			Map<Long, Long> mapThroughput = pairFlowThroughtput.getValue();
+			long firstSecond = 0;
+			long lastSecond = (ctx.getEndTimeUs() - ctx.getStartTimeUs()) / (1000L * 1000L); 
+			for(long second = firstSecond ; second <= lastSecond; second++) {
+				
+				Long bytes = mapThroughput.get(second);
+				if(bytes == null) bytes = 0L;
+				resultFlow.println(second + "; " + bytes);
+			}
+			
+			resultFlow.println("========================================================================");
+		}
+		
+		
 		System.out.println("Done!");
 	}
 }

@@ -87,7 +87,7 @@ public class Flow {
 	
 	@Override
 	public String toString() {
-		return new StringBuilder().append(srcIp).append(":").append(" -> ").append(dstIP).append(dstPort).toString();
+		return new StringBuilder().append(srcIp).append(":").append(srcPort).append(" -> ").append(dstIP).append(":").append(dstPort).toString();
 	}
 	
 

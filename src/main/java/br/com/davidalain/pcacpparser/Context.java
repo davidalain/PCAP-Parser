@@ -23,7 +23,8 @@ public class Context {
 	private String broker2IP;
 	
 	private int packerNumber;
-	private long startTime; //used to calculate throughput in each second
+	private long startTimeUs; //used to calculate throughput in each second 
+	private long endTimeUs;	//used to calculate throughput in each second
 
 	public Context(String client1IP, String broker1IP, String broker2IP) {
 		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
@@ -42,7 +43,8 @@ public class Context {
 		this.broker2IP = broker2IP;
 		
 		this.packerNumber = 0;
-		this.startTime = 0;
+		this.startTimeUs = 0;
+		this.endTimeUs = 0;
 	}
 	
 	public Map<Flow, Map<Long, Long>> getMapFlowThroughput() {
@@ -101,27 +103,59 @@ public class Context {
 		return times[qosIndex];
 	}
 	
-	public long getStartTime() {
-		return startTime;
+//	public long getStartTime() {
+//		return startTime;
+//	}
+//
+//	public void setStartTime(long startTime) {
+//		this.startTime = startTime;
+//	}
+//	
+//	public long getEndTime() {
+//		return endTime;
+//	}
+//
+//	public void setEndTime(long endTime) {
+//		this.endTime = endTime;
+//	}
+	
+	public long getStartTimeUs() {
+		return startTimeUs;
 	}
 
-	public void setStartTime(long startTime) {
-		this.startTime = startTime;
+	public void setStartTimeUs(long startTimeUs) {
+		this.startTimeUs = startTimeUs;
 	}
-	
-	public void addBytes(Flow flow, long arrivalTime, long bytestoAdd) {
+
+	public long getEndTimeUs() {
+		return endTimeUs;
+	}
+
+	public void setEndTimeUs(long endTimeUs) {
+		this.endTimeUs = endTimeUs;
+	}
+
+	public void addBytes(Flow flow, long arrivalTimeUs, long bytestoAdd) {
 		
-		long currentSecond = (arrivalTime - getStartTime()) / (1000L * 1000L);
+		//Guarda o menor tempo
+		if(this.startTimeUs == 0)
+			this.startTimeUs = arrivalTimeUs;
 		
-		if(getMapFlowThroughput().get(flow) == null) {
-			getMapFlowThroughput().put(flow, new HashMap<>());
+		//Guarda o marior tempo
+		if(arrivalTimeUs > this.endTimeUs)
+			this.endTimeUs = arrivalTimeUs;
+		
+		long currentSecond = (arrivalTimeUs - startTimeUs) / (1000L * 1000L);
+		
+		if(mapFlowThroughput.get(flow) == null) {
+			mapFlowThroughput.put(flow, new HashMap<>());
 		}
 
-		long value = (getMapFlowThroughput().get(flow).get(currentSecond) == null) ?
-				0 : getMapFlowThroughput().get(flow).get(currentSecond);
+		long value = (mapFlowThroughput.get(flow).get(currentSecond) == null) ?
+				0 : mapFlowThroughput.get(flow).get(currentSecond);
 		value += bytestoAdd;
 
-		getMapFlowThroughput().get(flow).put(currentSecond, value);
+		mapFlowThroughput.get(flow).put(currentSecond, value);
 	}
 
 }
