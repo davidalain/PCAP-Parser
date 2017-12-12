@@ -22,7 +22,7 @@ import io.pkts.packet.TCPPacket;
 import io.pkts.packet.UDPPacket;
 import io.pkts.protocol.Protocol;
 
-public class Main {
+public class MainClusterSync {
 
 	/**
 	 * TODO:
@@ -30,7 +30,7 @@ public class Main {
 	 * @see https://github.com/emqtt/emqttd/wiki/$SYS-Topics
 	 */
 
-	public static final String FILEPATH = "trace_747a0d82.pcap";
+	public static final String FILEPATH = "trace_747a0d82_2_Broker1ClusterDoisBrokers.pcap";
 
 	public static void main(String[] args) throws IOException {
 

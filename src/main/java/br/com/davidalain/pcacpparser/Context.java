@@ -58,6 +58,10 @@ public class Context {
 	public void setLastMqttReceived(MQTTPacket lastMqttReceived) {
 		this.lastMqttReceived = lastMqttReceived;
 	}
+	
+	public void getLastMqttReceivedQoS(MQTTPacket lastMqttReceived) {
+		this.lastMqttReceived = lastMqttReceived;
+	}
 
 	public int getPackerNumber() {
 		return packerNumber;
