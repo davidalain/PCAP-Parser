@@ -1,6 +1,7 @@
 package br.com.davidalain.pcacpparser;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
@@ -39,6 +40,7 @@ public class Main {
 		final PrintStream log = new PrintStream(new File("log.txt"));
 		final PrintStream resultTime = new PrintStream(new File("resultTime.txt"));
 		final PrintStream resultFlow = new PrintStream(new File("resultFlow.txt"));
+		final PrintStream printerAllFlow = new PrintStream(new File("flow/allFlows.csv"));
 
 		pcap.loop(new PacketHandler() {
 			@Override
@@ -189,6 +191,18 @@ public class Main {
 			}
 		});
 
+		
+		printQoSTimeAnalysis(ctx, log, resultTime);
+		printSeparatedFlows(ctx,resultFlow);
+		printAllFlows(ctx,printerAllFlow);
+		
+		System.out.println("Done!");
+		
+	}//fim do main
+	
+	
+	public static void printQoSTimeAnalysis(Context ctx, final PrintStream log, final PrintStream resultTime) throws FileNotFoundException {
+		
 		log.println("########################################################################");
 		for(int qos = 0 ; qos < Context.QOS_QUANTITY ; qos++) {
 			log.println("******************************* QoS = "+qos+" ****************************");
@@ -224,7 +238,20 @@ public class Main {
 			resultTime.println("========================================================================");
 		}
 		log.println("########################################################################");
-
+		
+	}
+	
+	public static void printSeparatedFlows(final Context ctx, final PrintStream resultFlow) throws FileNotFoundException {
+		
+		/**
+		 * Tempo inicial e final para ser mostrado em segundos (diferença do tempo real de chegada/saida dos pacotes em relação ao primeiro pacote capturado)
+		 */
+		final long firstSecond = 0;
+		final long lastSecond = (ctx.getEndTimeUs() - ctx.getStartTimeUs()) / (1000L * 1000L);
+		
+		/**
+		 * Impressão de cada fluxo em um arquivo separado
+		 */
 		for(Entry<Flow, Map<Long, Long>> pairFlowThroughtput : ctx.getMapFlowThroughput().entrySet()) {
 			resultFlow.println("========================================================================");
 			
@@ -238,8 +265,6 @@ public class Main {
 			printerCurrentFlow.println("second, bytes"); //CSV like
 			
 			Map<Long, Long> mapThroughput = pairFlowThroughtput.getValue();
-			long firstSecond = 0;
-			long lastSecond = (ctx.getEndTimeUs() - ctx.getStartTimeUs()) / (1000L * 1000L); 
 			for(long second = firstSecond ; second <= lastSecond; second++) {
 				
 				Long bytes = mapThroughput.get(second);
@@ -252,7 +277,57 @@ public class Main {
 			resultFlow.println("========================================================================");
 		}
 		
+	}
+	
+	public static void printAllFlows(final Context ctx, final PrintStream printerAllFlow) throws FileNotFoundException {
 		
-		System.out.println("Done!");
+		/**
+		 * Tempo inicial e final para ser mostrado em segundos (diferença do tempo real de chegada/saida dos pacotes em relação ao primeiro pacote capturado)
+		 */
+		final long firstSecond = 0;
+		final long lastSecond = (ctx.getEndTimeUs() - ctx.getStartTimeUs()) / (1000L * 1000L);
+		
+		/**
+		 * Impressão de todos os fluxos em um único arquivo
+		 */
+		
+		final int columnCount = ctx.getMapFlowThroughput().entrySet().size();
+		final int lineCount = (int) lastSecond + 1; //+1 pq começa a contar do zero
+		final String[] headers = new String[columnCount];
+		final long[][] matrixAllFlow = new long[lineCount][columnCount];
+		int column = 0;
+		
+		for(Entry<Flow, Map<Long, Long>> pairFlowThroughtput : ctx.getMapFlowThroughput().entrySet()) {
+			
+			final Flow flow = pairFlowThroughtput.getKey();
+			final Map<Long, Long> mapThroughput = pairFlowThroughtput.getValue();
+			
+			headers[column] = flow.toString(); //Preenche o cabeçalho
+			
+			for(long second = firstSecond, line = 0 ; second <= lastSecond; second++, line++) {
+				
+				Long bytes = mapThroughput.get(second);
+				if(bytes == null) bytes = 0L;
+				
+				matrixAllFlow[(int)line][column] = bytes.longValue();
+			}
+
+			column++;
+		}
+		
+		printerAllFlow.print("second");
+		for(String header : headers) {
+			printerAllFlow.print(", " + header);
+		}
+		printerAllFlow.println();
+
+		int secondValue = 0;
+		for(long[] lineValues : matrixAllFlow) {
+			printerAllFlow.print(secondValue++);
+			for(long value : lineValues) {
+				printerAllFlow.print(", " + value);	
+			}
+			printerAllFlow.println();
+		}
 	}
 }
