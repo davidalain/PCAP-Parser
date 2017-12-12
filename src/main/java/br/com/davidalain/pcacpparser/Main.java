@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map.Entry;
 
 import br.com.davidalain.pcapparser.mqtt.FactoryMQTT;
@@ -27,7 +29,7 @@ public class Main {
 	public static final String CLIENT1_IP = "192.168.25.63";
 	public static final String BROKER1_IP = "172.17.0.3";
 	public static final String BROKER2_IP = "172.17.0.2";
-	
+
 	public static final String FILEPATH = "trace_747a0d82.pcap";
 
 	public static void main(String[] args) throws IOException {
@@ -53,17 +55,20 @@ public class Main {
 					byte[] ethernetPayloadArray = ethernetPayload.getArray();
 					int ethernetPayloadLen = ethernetPayloadArray.length;
 
-					log.println("time(us): " + PacketUtil.getArrivalTime(packet));
-					log.println("direction: "
-							+ PacketUtil.getSourceIP(packet) 		+ ":" + PacketUtil.getSourcePort(packet) + " -> "
-							+ PacketUtil.getDestinationIP(packet) 	+ ":" + PacketUtil.getDestinationPort(packet));
-
-					log.println("Ethernet frame sizes: \t"+
-							"total=" + ethernetPacket.getTotalLength() + "\t"+
-							"header=" + (ethernetPacket.getTotalLength() - ethernetPayloadLen) + "\t"+
-							"payload=" + ethernetPayloadLen);
-
 					if (ethernetPacket.hasProtocol(Protocol.IPv4)) {
+
+						Flow flow = new Flow(packet);
+
+						log.println("time(us): " + PacketUtil.getArrivalTime(packet));
+						log.println("flow: " + flow);
+						ctx.addBytes(flow, PacketUtil.getArrivalTime(packet), ethernetPacket.getTotalLength());
+
+//						COLOCAR PRA IMPRIMIR A QUANTIDADE DE BYTES EM CADA FLOW POR CADA SEGUNDO
+						
+						log.println("Ethernet frame sizes: \t"+
+								"total=" + ethernetPacket.getTotalLength() + "\t"+
+								"header=" + (ethernetPacket.getTotalLength() - ethernetPayloadLen) + "\t"+
+								"payload=" + ethernetPayloadLen);
 
 						IPPacket ipPacket = (IPPacket) ethernetPacket.getPacket(Protocol.IPv4);
 						Buffer ipPayload = ipPacket.getPayload();
@@ -100,7 +105,7 @@ public class Main {
 									log.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
 
 									MQTTPacket mqttPacket = factory.getMQTTPacket(tcpPayloadArray, tcpPacket.getArrivalTime());
-									
+
 									log.println("msgType:"+mqttPacket.getMessageType());
 									log.println("DUPFlag:"+mqttPacket.getDupFlag());
 									log.println("QoS:"+mqttPacket.getQoS());
@@ -143,15 +148,15 @@ public class Main {
 
 												ctx.getMqttToTcpBrokerSyncMap(qos).put(lastMqtt, tcpPacket);
 												ctx.setLastMqttReceived(null);
-												
+
 											} else {
-												
-//												log.println("ArraysUtil.contains(tcpPayloadArray, topic)="+ArraysUtil.contains(tcpPayloadArray, topic));
-//												log.println(HexPrinter.toStringHexDump(topic));
-//												
-//												log.println("ArraysUtil.contains(tcpPayloadArray, message)="+ArraysUtil.contains(tcpPayloadArray, message));
-//												log.println(HexPrinter.toStringHexDump(message));
-												
+
+												//												log.println("ArraysUtil.contains(tcpPayloadArray, topic)="+ArraysUtil.contains(tcpPayloadArray, topic));
+												//												log.println(HexPrinter.toStringHexDump(topic));
+												//												
+												//												log.println("ArraysUtil.contains(tcpPayloadArray, message)="+ArraysUtil.contains(tcpPayloadArray, message));
+												//												log.println(HexPrinter.toStringHexDump(message));
+
 											}
 
 										}
@@ -214,7 +219,7 @@ public class Main {
 			result.println("max(us)="+max+", max(ms)="+(max/1000.0)+", max(s)="+(max/(1000.0*1000.0)));
 			result.println("min(us)="+min+", min(ms)="+(min/1000.0)+", min(s)="+(min/(1000.0*1000.0)));
 			result.println("avg(us)="+avg+", avg(ms)="+(avg/1000.0)+", avg(s)="+(avg/(1000.0*1000.0)));
-			
+
 			Collections.sort(ctx.getTimes(qos));
 			median = ctx.getTimes(qos).size() == 0 ? Double.NaN : ctx.getTimes(qos).get(ctx.getTimes(qos).size()/2);
 			result.println("median(us)="+median+", median(ms)="+(median/1000.0)+", median(s)="+(median/(1000.0*1000.0)));
