@@ -29,18 +29,27 @@ public class MainClusterSync {
 	 * 
 	 * @see https://github.com/emqtt/emqttd/wiki/$SYS-Topics
 	 */
+	
+	public static final String BROKER1_IP = "172.16.0.3";
+	public static final String BROKER2_IP = "172.16.0.2";
+	public static final String CLIENT1_IP = "192.168.43.1";
+	public static final String CLIENT2_IP = "192.168.43.2"; //FIXME
 
 	public static final String FILEPATH = "trace_747a0d82_2_Broker1ClusterDoisBrokers.pcap";
+	
+	public static final String PREFIX = FILEPATH.substring(0, FILEPATH.length() - 5);
+	public static final String OUTPUT_PATH = "output/";
+	public static final String OUTPUT_FLOW_PATH = "output/flow/";
 
 	public static void main(String[] args) throws IOException {
 
 		final Pcap pcap = Pcap.openStream(FILEPATH);
-		final Context ctx = new Context();
+		final Context ctx = new Context(BROKER1_IP, BROKER2_IP, CLIENT1_IP, CLIENT2_IP);
 		final FactoryMQTT factory = new FactoryMQTT();
-		final PrintStream log = new PrintStream(new File("log.txt"));
-		final PrintStream resultTime = new PrintStream(new File("resultTime.txt"));
-		final PrintStream resultFlow = new PrintStream(new File("resultFlow.txt"));
-		final PrintStream printerAllFlow = new PrintStream(new File("flow/allFlows.csv"));
+		final PrintStream log = new PrintStream(new File(OUTPUT_PATH+PREFIX+"_log.txt"));
+		final PrintStream resultTime = new PrintStream(new File(OUTPUT_PATH+PREFIX+"_resultTime.txt"));
+		final PrintStream resultFlow = new PrintStream(new File(OUTPUT_PATH+PREFIX+"_resultFlow.txt"));
+		final PrintStream printerAllFlow = new PrintStream(new File(OUTPUT_FLOW_PATH+PREFIX+"_allFlows.csv"));
 
 		pcap.loop(new PacketHandler() {
 			@Override
@@ -110,8 +119,14 @@ public class MainClusterSync {
 									log.println("QoS:"+mqttPacket.getQoS());
 									log.println("RetainFlag:"+mqttPacket.getRetainFlag());
 									log.println("msgLen:"+mqttPacket.getMessageLength());
-
-									ctx.setLastMqttReceived(mqttPacket);
+									
+									/**
+									 * Client1 enviando Publish Message para o broker1
+									 */
+									if(tcpPacket.getSourceIP().equals(CLIENT1_IP) && tcpPacket.getDestinationIP().equals(BROKER1_IP)) {
+										ctx.setLastMqttReceived(mqttPacket);	
+									}
+									
 								} else {
 									//TCP payload não é MQTT. Outro protocolo de camada 7.
 
@@ -132,30 +147,37 @@ public class MainClusterSync {
 											byte[] topic = mqttPublish.getTopicArray();
 											byte[] message = mqttPublish.getMessageArray();
 
-											//FIXME:
-											//Note: this is a not safe check, because topic name and message can be equals (same content) or shorter than necessary to guarantee correct working
-											//The correct way to check is analyze if topic and message are into TCP payload at the their specific correct positions
-											if(
-													ArraysUtil.contains(tcpPayloadArray, topic) &&
-													ArraysUtil.contains(tcpPayloadArray, message)) 
-											{
+											/**
+											 * Broker1 enviando mensagem de sync para Broker2
+											 */
+											if(tcpPacket.getSourceIP().equals(BROKER1_IP) && tcpPacket.getDestinationIP().equals(BROKER2_IP)) {
 
-												//This is the TCP Segment that broker uses to synchronize last MQTT Publish Message to another broker in the cluster
+												//FIXME:
+												//Note: this is a not safe check, because topic name and message can be equals (same content) or shorter than necessary to guarantee correct working
+												//The correct way to check is analyze if topic and message are into TCP payload at the their specific correct positions
+												if(
+														ArraysUtil.contains(tcpPayloadArray, topic) &&
+														ArraysUtil.contains(tcpPayloadArray, message)) 
+												{
 
-												int qos = lastMqtt.getQoS();
-												log.println("qos="+qos);
+													//This is the TCP Segment that broker uses to synchronize last MQTT Publish Message to another broker in the cluster
 
-												ctx.getMqttToTcpBrokerSyncMap(qos).put(lastMqtt, tcpPacket);
-												ctx.setLastMqttReceived(null);
+													int qos = lastMqtt.getQoS();
+													log.println("qos="+qos);
 
-											} else {
+													ctx.getMqttToTcpBrokerSyncMap(qos).put(lastMqtt, tcpPacket);
+													ctx.setLastMqttReceived(null);
 
-												//												log.println("ArraysUtil.contains(tcpPayloadArray, topic)="+ArraysUtil.contains(tcpPayloadArray, topic));
-												//												log.println(HexPrinter.toStringHexDump(topic));
-												//												
-												//												log.println("ArraysUtil.contains(tcpPayloadArray, message)="+ArraysUtil.contains(tcpPayloadArray, message));
-												//												log.println(HexPrinter.toStringHexDump(message));
+												} else {
 
+													//												log.println("ArraysUtil.contains(tcpPayloadArray, topic)="+ArraysUtil.contains(tcpPayloadArray, topic));
+													//												log.println(HexPrinter.toStringHexDump(topic));
+													//												
+													//												log.println("ArraysUtil.contains(tcpPayloadArray, message)="+ArraysUtil.contains(tcpPayloadArray, message));
+													//												log.println(HexPrinter.toStringHexDump(message));
+
+												}
+												
 											}
 
 										}
@@ -255,7 +277,7 @@ public class MainClusterSync {
 			resultFlow.println("========================================================================");
 			
 			final Flow flow = pairFlowThroughtput.getKey();
-			final PrintStream printerCurrentFlow = new PrintStream(new File("flow/resultFlow_"+flow.toStringForFileName()+".csv"));
+			final PrintStream printerCurrentFlow = new PrintStream(new File(OUTPUT_FLOW_PATH+PREFIX+"_resultFlow_"+flow.toStringForFileName()+".csv"));
 			
 			resultFlow.println("Flow: " + flow);
 			resultFlow.println();
