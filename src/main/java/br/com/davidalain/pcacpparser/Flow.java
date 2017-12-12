@@ -90,5 +90,9 @@ public class Flow {
 		return new StringBuilder().append(srcIp).append(":").append(srcPort).append(" -> ").append(dstIP).append(":").append(dstPort).toString();
 	}
 	
+	public String toStringForFileName() {
+		return new StringBuilder().append(srcIp).append(".").append(srcPort).append("_to_").append(dstIP).append(".").append(dstPort).toString();
+	}
+	
 
 }

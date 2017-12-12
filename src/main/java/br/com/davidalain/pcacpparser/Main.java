@@ -227,9 +227,15 @@ public class Main {
 
 		for(Entry<Flow, Map<Long, Long>> pairFlowThroughtput : ctx.getMapFlowThroughput().entrySet()) {
 			resultFlow.println("========================================================================");
-			resultFlow.println("Flow: " + pairFlowThroughtput.getKey());
+			
+			final Flow flow = pairFlowThroughtput.getKey();
+			final PrintStream printerCurrentFlow = new PrintStream(new File("flow/resultFlow_"+flow.toStringForFileName()+".csv"));
+			
+			resultFlow.println("Flow: " + flow);
 			resultFlow.println();
-			resultFlow.println("second; bytes"); //CSV like
+			resultFlow.println("second, bytes"); //CSV like
+			
+			printerCurrentFlow.println("second, bytes"); //CSV like
 			
 			Map<Long, Long> mapThroughput = pairFlowThroughtput.getValue();
 			long firstSecond = 0;
@@ -238,7 +244,9 @@ public class Main {
 				
 				Long bytes = mapThroughput.get(second);
 				if(bytes == null) bytes = 0L;
-				resultFlow.println(second + "; " + bytes);
+				
+				resultFlow.println(second + ", " + bytes); //imprime no arquivo com todos os fluxos
+				printerCurrentFlow.println(second + ", " + bytes); //imprime no arquivo separado por fluxo
 			}
 			
 			resultFlow.println("========================================================================");
