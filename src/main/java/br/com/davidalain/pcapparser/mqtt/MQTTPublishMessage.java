@@ -1,7 +1,5 @@
 package br.com.davidalain.pcapparser.mqtt;
 
-import br.com.davidalain.pcacpparser.HexPrinter;
-
 public class MQTTPublishMessage extends MQTTPacket{
 
 	public MQTTPublishMessage(byte[] data, long arrivalTime) {
@@ -22,8 +20,13 @@ public class MQTTPublishMessage extends MQTTPacket{
 		return new String(getTopicArray());
 	}
 	
-	public final byte[] getMessageArray() {
+	public final int getMessageIdentifier() {
 		int index = 4 + getTopicLength();
+		return ((data[index] << 8) | data[index]);
+	}
+	
+	public final byte[] getMessageArray() {
+		int index = 4 + getTopicLength() + 2;
 		final byte[] array = new byte[data.length-index];
 		System.arraycopy(data, index, array, 0, array.length);
 		return array;

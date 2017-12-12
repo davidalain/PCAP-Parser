@@ -10,9 +10,12 @@ import io.pkts.packet.TCPPacket;
 
 public class Context {
 	
-	private Map<MQTTPacket,TCPPacket> mqttToTcpBrokerSyncMap;
+	public static final int QOS_QUANTITY = 3;
+	
+	private Map<MQTTPacket,TCPPacket>[] mqttToTcpBrokerSyncMap;
+	private List<Long>[] times;
+	
 	private MQTTPacket lastMqttReceived;
-	private List<Long> times;
 	
 	private String client1IP;
 	private String broker1IP;
@@ -21,7 +24,13 @@ public class Context {
 	private int packerNumber;
 	
 	public Context(String client1IP, String broker1IP, String broker2IP) {
-		this.mqttToTcpBrokerSyncMap = new HashMap<>();
+		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
+		this.times = new ArrayList[QOS_QUANTITY];
+		for(int i = 0 ; i < QOS_QUANTITY ; i++) {
+			this.mqttToTcpBrokerSyncMap[i] = new HashMap<>();
+			this.times[i] = new ArrayList<>();
+		}
+		
 		this.lastMqttReceived = null;
 		
 		this.client1IP = client1IP;
@@ -29,16 +38,19 @@ public class Context {
 		this.broker2IP = broker2IP;
 		
 		this.packerNumber = 0;
-		this.times = new ArrayList<>();
 	}
 
-	public Map<MQTTPacket, TCPPacket> getMqttToTcpBrokerSyncMap() {
-		return mqttToTcpBrokerSyncMap;
+//	public Map<MQTTPacket, TCPPacket>[] getMqttToTcpBrokerSyncMap() {
+//		return mqttToTcpBrokerSyncMap;
+//	}
+	
+	public Map<MQTTPacket, TCPPacket> getMqttToTcpBrokerSyncMap(int index) {
+		return mqttToTcpBrokerSyncMap[index];
 	}
 
-	public void setMqttToTcpBrokerSyncMap(Map<MQTTPacket, TCPPacket> mqttToTcpBrokerSyncMap) {
-		this.mqttToTcpBrokerSyncMap = mqttToTcpBrokerSyncMap;
-	}
+//	public void setMqttToTcpBrokerSyncMap(Map<MQTTPacket, TCPPacket> mqttToTcpBrokerSyncMap) {
+//		this.mqttToTcpBrokerSyncMap = mqttToTcpBrokerSyncMap;
+//	}
 
 	public MQTTPacket getLastMqttReceived() {
 		return lastMqttReceived;
@@ -80,8 +92,12 @@ public class Context {
 		this.packerNumber++;
 	}
 	
-	public final List<Long> getTimes(){
-		return times;
+//	public final List<Long>[] getTimes(){
+//		return times;
+//	}
+	
+	public final List<Long> getTimes(int index){
+		return times[index];
 	}
 	
 	

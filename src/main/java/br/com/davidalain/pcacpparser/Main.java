@@ -1,10 +1,10 @@
 package br.com.davidalain.pcacpparser;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map.Entry;
 
 import br.com.davidalain.pcapparser.mqtt.FactoryMQTT;
@@ -21,18 +21,22 @@ import io.pkts.packet.UDPPacket;
 import io.pkts.protocol.Protocol;
 
 public class Main {
-	
-	//TODO: https://github.com/emqtt/emqttd/wiki/$SYS-Topics
+
+	//TODO:@see https://github.com/emqtt/emqttd/wiki/$SYS-Topics
 
 	public static final String CLIENT1_IP = "192.168.25.63";
 	public static final String BROKER1_IP = "172.17.0.3";
 	public static final String BROKER2_IP = "172.17.0.2";
+	
+	public static final String FILEPATH = "trace_747a0d82.pcap";
 
 	public static void main(String[] args) throws IOException {
 
-		final Pcap pcap = Pcap.openStream("trace_747a0d82.pcap");
+		final Pcap pcap = Pcap.openStream(FILEPATH);
 		final Context ctx = new Context(CLIENT1_IP, BROKER1_IP, BROKER2_IP);
-		final FactoryMQTT factory = new FactoryMQTT(); 
+		final FactoryMQTT factory = new FactoryMQTT();
+		final PrintStream log = new PrintStream(new File("log.txt"));
+		final PrintStream result = new PrintStream(new File("result.txt"));
 
 		pcap.loop(new PacketHandler() {
 			@Override
@@ -41,20 +45,20 @@ public class Main {
 				ctx.incrementPackerNumber();
 
 				if (packet.hasProtocol(Protocol.ETHERNET_II)) {
-					System.out.println("============================================================");
-					System.out.println("packetNumber: " + ctx.getPackerNumber());
+					log.println("============================================================");
+					log.println("packetNumber: " + ctx.getPackerNumber());
 
 					MACPacket ethernetPacket = (MACPacket) packet.getPacket(Protocol.ETHERNET_II);
 					Buffer ethernetPayload = ethernetPacket.getPayload();
 					byte[] ethernetPayloadArray = ethernetPayload.getArray();
 					int ethernetPayloadLen = ethernetPayloadArray.length;
 
-					System.out.println("time(us): " + PacketUtil.getArrivalTime(packet));
-					System.out.println("direction: "
+					log.println("time(us): " + PacketUtil.getArrivalTime(packet));
+					log.println("direction: "
 							+ PacketUtil.getSourceIP(packet) 		+ ":" + PacketUtil.getSourcePort(packet) + " -> "
 							+ PacketUtil.getDestinationIP(packet) 	+ ":" + PacketUtil.getDestinationPort(packet));
 
-					System.out.println("Ethernet frame sizes: \t"+
+					log.println("Ethernet frame sizes: \t"+
 							"total=" + ethernetPacket.getTotalLength() + "\t"+
 							"header=" + (ethernetPacket.getTotalLength() - ethernetPayloadLen) + "\t"+
 							"payload=" + ethernetPayloadLen);
@@ -66,7 +70,7 @@ public class Main {
 						byte[] ipPayloadArray = ipPayload.getArray();
 						int ipPayloadLen = ipPayloadArray.length;
 
-						System.out.println("IP datagram size: \t\t"+
+						log.println("IP datagram size: \t\t"+
 								"total=" + ethernetPayloadLen + "\t"+
 								"header=" + (ethernetPayloadLen - ipPayloadLen) + "\t"+
 								"payload=" + ipPayloadLen);
@@ -82,20 +86,26 @@ public class Main {
 								byte[] tcpPayloadArray = tcpPayload.getArray();
 								int tcpPayloadLen = tcpPayloadArray.length;
 
-								System.out.println("TCP segment size: \t\t"+
+								log.println("TCP segment size: \t\t"+
 										"total=" + ipPayloadLen + "\t"+
 										"header=" + (ipPayloadLen - tcpPayloadLen) + "\t"+
 										"payload=" + tcpPayloadLen);
 
-								System.out.println(tcpPayloadArray.length);
-								System.out.println(HexPrinter.toStringHexDump(tcpPayloadArray));
-								System.out.println(tcpPayload);
+								log.println(tcpPayloadArray.length);
+								log.println(HexPrinter.toStringHexDump(tcpPayloadArray));
+								log.println(tcpPayload);
 
 								if(MQTTPacket.isMQTT(tcpPayload)) {
-									System.out.println("==== MQTT: ===");
-									System.out.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
+									log.println("==== MQTT: ===");
+									log.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
 
 									MQTTPacket mqttPacket = factory.getMQTTPacket(tcpPayloadArray, tcpPacket.getArrivalTime());
+									
+									log.println("msgType:"+mqttPacket.getMessageType());
+									log.println("DUPFlag:"+mqttPacket.getDupFlag());
+									log.println("QoS:"+mqttPacket.getQoS());
+									log.println("RetainFlag:"+mqttPacket.getRetainFlag());
+									log.println("msgLen:"+mqttPacket.getMessageLength());
 
 									ctx.setLastMqttReceived(mqttPacket);
 								} else {
@@ -104,12 +114,12 @@ public class Main {
 									MQTTPacket lastMqtt = ctx.getLastMqttReceived();
 									if(lastMqtt != null) {
 
-										System.out.println("==== Não é MQTT: ===");
-										System.out.println(HexPrinter.toStringHexDump(tcpPayloadArray));
-										
+										log.println("==== Não é MQTT: ===");
+										log.println(HexPrinter.toStringHexDump(tcpPayloadArray));
+
 										int len = ByteBuffer.wrap(tcpPayloadArray, 0, 4).getInt();
-										System.out.println("len="+len);
-										System.out.println(tcpPayloadLen);
+										log.println("len="+len);
+										log.println(tcpPayloadLen);
 
 										if(lastMqtt.getMessageType() == MQTTPacket.MessageType.PUBLISH_MESSAGE) {
 
@@ -128,8 +138,20 @@ public class Main {
 
 												//This is the TCP Segment that broker uses to synchronize last MQTT Publish Message to another broker in the cluster
 
-												ctx.getMqttToTcpBrokerSyncMap().put(lastMqtt, tcpPacket);
+												int qos = lastMqtt.getQoS();
+												log.println("qos="+qos);
+
+												ctx.getMqttToTcpBrokerSyncMap(qos).put(lastMqtt, tcpPacket);
 												ctx.setLastMqttReceived(null);
+												
+											} else {
+												
+//												log.println("ArraysUtil.contains(tcpPayloadArray, topic)="+ArraysUtil.contains(tcpPayloadArray, topic));
+//												log.println(HexPrinter.toStringHexDump(topic));
+//												
+//												log.println("ArraysUtil.contains(tcpPayloadArray, message)="+ArraysUtil.contains(tcpPayloadArray, message));
+//												log.println(HexPrinter.toStringHexDump(message));
+												
 											}
 
 										}
@@ -147,48 +169,59 @@ public class Main {
 								byte[] udpPayloadArray = udpPayload.getArray();
 								int udpPayloadLen = udpPayloadArray.length;
 
-								System.out.println("TCP segment size: \t\t"+
+								log.println("TCP segment size: \t\t"+
 										"total=" + ipPayloadLen + "\t"+
 										"header=" + (ipPayloadLen - udpPayloadLen) + "\t"+
 										"payload=" + udpPayloadLen);
 
 							}
 						} else {
-							System.out.println(packet.getProtocol());
+							log.println(packet.getProtocol());
 						}
 
-						System.out.println("============================================================");					
+						log.println("============================================================");					
 					}
 				}
 				return true;
 			}
 		});
 
-		System.out.println("########################################################################");
-		for(Entry<MQTTPacket, TCPPacket> pair : ctx.getMqttToTcpBrokerSyncMap().entrySet()) {
-			System.out.println("MQTT");
-			System.out.println(HexPrinter.toStringHexDump(pair.getKey().getData()));
-			System.out.println("TCP");
-			System.out.println(HexPrinter.toStringHexDump(pair.getValue().getPayload().getArray()));
-			long diffTime = (pair.getValue().getArrivalTime() - pair.getKey().getArrivalTime());
-			System.out.println("difftime(us) = " + diffTime);
+		log.println("########################################################################");
+		for(int qos = 0 ; qos < Context.QOS_QUANTITY ; qos++) {
+			log.println("******************************* QoS = "+qos+" ****************************");
+			for(Entry<MQTTPacket, TCPPacket> pair : ctx.getMqttToTcpBrokerSyncMap(qos).entrySet()) {
+				log.println("MQTT");
+				log.println(HexPrinter.toStringHexDump(pair.getKey().getData()));
+				log.println("TCP");
+				log.println(HexPrinter.toStringHexDump(pair.getValue().getPayload().getArray()));
+				long diffTime = (pair.getValue().getArrivalTime() - pair.getKey().getArrivalTime());
+				log.println("difftime(us) = " + diffTime);
+
+				ctx.getTimes(qos).add(diffTime);
+			}
+			log.println("**************************************************************************");
+
+			result.println("============================= QoS = "+qos+" ===============================");
+			double avg = 0;
+			double median = 0;
+			double max = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.max(ctx.getTimes(qos));
+			double min = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.min(ctx.getTimes(qos));
+			for(long l : ctx.getTimes(qos)) {
+				avg += (double)l;
+			}
+			avg /= (double)ctx.getTimes(qos).size();
+			result.println(ctx.getTimes(qos));
+			result.println("max(us)="+max+", max(ms)="+(max/1000.0)+", max(s)="+(max/(1000.0*1000.0)));
+			result.println("min(us)="+min+", min(ms)="+(min/1000.0)+", min(s)="+(min/(1000.0*1000.0)));
+			result.println("avg(us)="+avg+", avg(ms)="+(avg/1000.0)+", avg(s)="+(avg/(1000.0*1000.0)));
 			
-			ctx.getTimes().add(diffTime);
+			Collections.sort(ctx.getTimes(qos));
+			median = ctx.getTimes(qos).size() == 0 ? Double.NaN : ctx.getTimes(qos).get(ctx.getTimes(qos).size()/2);
+			result.println("median(us)="+median+", median(ms)="+(median/1000.0)+", median(s)="+(median/(1000.0*1000.0)));
+			result.println("========================================================================");
 		}
-		System.out.println("########################################################################");
-		
-		System.out.println("========================================================================");
-		double avg = 0;
-		double max = Collections.max(ctx.getTimes());
-		double min = Collections.min(ctx.getTimes());
-		for(long l : ctx.getTimes()) {
-			avg += (double)l;
-		}
-		avg /= (double)ctx.getTimes().size();
-		System.out.println(ctx.getTimes());
-		System.out.println("max(us)="+max+", max(ms)="+(max/1000.0)+", max(s)="+(max/(1000.0*1000.0)));
-		System.out.println("min(us)="+min+", min(ms)="+(min/1000.0)+", min(s)="+(min/(1000.0*1000.0)));
-		System.out.println("avg(us)="+avg+", avg(ms)="+(avg/1000.0)+", avg(s)="+(avg/(1000.0*1000.0)));
-		System.out.println("========================================================================");
+		log.println("########################################################################");
+
+		System.out.println("Done!");
 	}
 }
