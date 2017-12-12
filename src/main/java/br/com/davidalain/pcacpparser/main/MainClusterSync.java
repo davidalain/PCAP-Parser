@@ -1,4 +1,4 @@
-package br.com.davidalain.pcacpparser;
+package br.com.davidalain.pcacpparser.main;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,6 +9,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import br.com.davidalain.pcacpparser.ArraysUtil;
+import br.com.davidalain.pcacpparser.Context;
+import br.com.davidalain.pcacpparser.Flow;
+import br.com.davidalain.pcacpparser.HexPrinter;
+import br.com.davidalain.pcacpparser.PacketUtil;
 import br.com.davidalain.pcapparser.mqtt.FactoryMQTT;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import br.com.davidalain.pcapparser.mqtt.MQTTPublishMessage;
@@ -42,6 +47,11 @@ public class MainClusterSync {
 	public static final String OUTPUT_FLOW_PATH = "output/flow/";
 
 	public static void main(String[] args) throws IOException {
+		
+		/**
+		 * Cria o caminho (não dá erro caso já exista)
+		 */
+		new File(OUTPUT_FLOW_PATH).mkdirs();
 
 		final Pcap pcap = Pcap.openStream(FILEPATH);
 		final Context ctx = new Context(BROKER1_IP, BROKER2_IP, CLIENT1_IP, CLIENT2_IP);
