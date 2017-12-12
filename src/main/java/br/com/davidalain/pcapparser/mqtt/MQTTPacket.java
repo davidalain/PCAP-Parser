@@ -1,35 +1,47 @@
-package com.javahelps.pcapparser.mqtt;
+package br.com.davidalain.pcapparser.mqtt;
 
 import java.security.InvalidParameterException;
 
-import com.javahelps.pcapparser.HexPrinter;
-
+import br.com.davidalain.pcacpparser.HexPrinter;
 import io.pkts.buffer.Buffer;
 
-public class MQTT {
+public abstract class MQTTPacket{
 
 	public class MessageType{
 		public static final int CONNECT_COMMAND 	= (0x1);
 		public static final int CONNECT_ACK 		= (0x2);
-		
+
 		public static final int PUBLISH_MESSAGE 	= (0x3);
-		
+
 		public static final int SUBSCRIBE_REQUEST 	= (0x8);
 		public static final int SUBSCRIBE_ACK 		= (0x9);
+		
+		public static final int PING_REQUEST 		= (0xC);
+		public static final int PING_RESPONSE 		= (0xD);
 	}
 
-	private byte[] data;
+	protected final byte[] data;
+	protected final long arrivalTime;
 
-	public MQTT(byte[] data) {
-		
+	public MQTTPacket(byte[] data, long arrivalTime) {
+
 		if(!isMQTT(data)) {
 			System.err.println("Não é um pacote MQTT válido");
-			System.err.println(HexPrinter.toStringHexFormatted(data));
-			
+			System.err.println(HexPrinter.toStringHexDump(data));
+
 			throw new InvalidParameterException("Não é um pacote MQTT válido!!");
 		}
-		
+
 		this.data = data;
+		this.arrivalTime = arrivalTime;
+	}
+	
+	public final byte[] getData() {
+		return data;
+	}
+
+	public long getArrivalTime() {
+		return arrivalTime;
 	}
 
 	public int getMessageType() {
@@ -48,23 +60,10 @@ public class MQTT {
 		return (data[0] & 0x01);
 	}
 
-	public int getMQTTMessageLength() {
+	public int getMessageLength() {
 		return data[1];
 	}
 
-	public int getTopicLength() {
-		return (data[2] << 8) | (data[3]);
-	}
-
-	public String getTopic() {
-		return new String(data, 4, getTopicLength());
-	}
-
-	public String getMessage() {
-		int index = 4 + getTopicLength();
-		return new String(data, index, data.length-index);
-	}
-	
 	public static boolean isMQTT(Buffer buffer) {
 
 		if(buffer == null)
@@ -72,12 +71,12 @@ public class MQTT {
 
 		return isMQTT(buffer.getArray());
 	}
-	
+
 	public static boolean isMQTT(byte[] data) {
 
 		if(data == null)
 			return false;
-		
+
 		if(data.length < 2)
 			return false;
 
@@ -91,11 +90,11 @@ public class MQTT {
 		default:
 			return false;
 		}
-		
+
 		if(data[1] != (data.length - 2))
 			return false;
 
 		return true;
 	}
-
+	
 }

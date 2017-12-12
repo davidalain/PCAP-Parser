@@ -1,4 +1,4 @@
-package com.javahelps.pcapparser;
+package br.com.davidalain.pcacpparser;
 
 import java.io.IOException;
 

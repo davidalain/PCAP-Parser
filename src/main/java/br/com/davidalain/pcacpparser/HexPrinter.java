@@ -1,4 +1,4 @@
-package com.javahelps.pcapparser;
+package br.com.davidalain.pcacpparser;
 
 public class HexPrinter {
 
@@ -55,7 +55,7 @@ public class HexPrinter {
 		return sb.toString();
 	}
 
-	public static String toStringHexFormatted(byte[] array) {
+	public static String toStringHexDump(byte[] array) {
 
 		StringBuilder sb = new StringBuilder();
 
