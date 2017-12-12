@@ -18,15 +18,11 @@ public class Context {
 	
 	private MQTTPacket lastMqttReceived;
 	
-	private String client1IP;
-	private String broker1IP;
-	private String broker2IP;
-	
 	private int packerNumber;
 	private long startTimeUs; //used to calculate throughput in each second 
 	private long endTimeUs;	//used to calculate throughput in each second
 
-	public Context(String client1IP, String broker1IP, String broker2IP) {
+	public Context() {
 		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
 		this.times = new ArrayList[QOS_QUANTITY];
 		for(int i = 0 ; i < QOS_QUANTITY ; i++) {
@@ -37,10 +33,6 @@ public class Context {
 		this.mapFlowThroughput = new HashMap<>();
 		
 		this.lastMqttReceived = null;
-		
-		this.client1IP = client1IP;
-		this.broker1IP = broker1IP;
-		this.broker2IP = broker2IP;
 		
 		this.packerNumber = 0;
 		this.startTimeUs = 0;
@@ -65,30 +57,6 @@ public class Context {
 
 	public void setLastMqttReceived(MQTTPacket lastMqttReceived) {
 		this.lastMqttReceived = lastMqttReceived;
-	}
-
-	public String getClient1IP() {
-		return client1IP;
-	}
-
-	public void setClient1IP(String client1ip) {
-		client1IP = client1ip;
-	}
-
-	public String getBroker1IP() {
-		return broker1IP;
-	}
-
-	public void setBroker1IP(String broker1ip) {
-		broker1IP = broker1ip;
-	}
-
-	public String getBroker2IP() {
-		return broker2IP;
-	}
-
-	public void setBroker2IP(String broker2ip) {
-		broker2IP = broker2ip;
 	}
 
 	public int getPackerNumber() {

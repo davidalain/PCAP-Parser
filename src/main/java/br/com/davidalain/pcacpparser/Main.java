@@ -24,18 +24,18 @@ import io.pkts.protocol.Protocol;
 
 public class Main {
 
-	//TODO:@see https://github.com/emqtt/emqttd/wiki/$SYS-Topics
-
-	public static final String CLIENT1_IP = "192.168.25.63";
-	public static final String BROKER1_IP = "172.17.0.3";
-	public static final String BROKER2_IP = "172.17.0.2";
+	/**
+	 * TODO:
+	 * 
+	 * @see https://github.com/emqtt/emqttd/wiki/$SYS-Topics
+	 */
 
 	public static final String FILEPATH = "trace_747a0d82.pcap";
 
 	public static void main(String[] args) throws IOException {
 
 		final Pcap pcap = Pcap.openStream(FILEPATH);
-		final Context ctx = new Context(CLIENT1_IP, BROKER1_IP, BROKER2_IP);
+		final Context ctx = new Context();
 		final FactoryMQTT factory = new FactoryMQTT();
 		final PrintStream log = new PrintStream(new File("log.txt"));
 		final PrintStream resultTime = new PrintStream(new File("resultTime.txt"));
@@ -79,8 +79,7 @@ public class Main {
 								"total=" + ethernetPayloadLen + "\t"+
 								"header=" + (ethernetPayloadLen - ipPayloadLen) + "\t"+
 								"payload=" + ipPayloadLen);
-
-
+						
 						if (ipPacket.hasProtocol(Protocol.TCP)) {
 
 							TCPPacket tcpPacket = (TCPPacket) ipPacket.getPacket(Protocol.TCP);
