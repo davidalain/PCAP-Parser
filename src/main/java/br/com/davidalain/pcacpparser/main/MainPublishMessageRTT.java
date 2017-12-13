@@ -3,6 +3,7 @@ package br.com.davidalain.pcacpparser.main;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.security.InvalidParameterException;
 
 import br.com.davidalain.pcacpparser.Context;
 import br.com.davidalain.pcacpparser.Flow;
@@ -27,9 +28,11 @@ public class MainPublishMessageRTT {
 	 * 
 	 * @see https://github.com/emqtt/emqttd/wiki/$SYS-Topics
 	 */
-	
+
 	public static void main(String[] args) throws IOException {
-		
+
+		System.out.println("Running...");
+
 		/**
 		 * Cria o caminho (não dá erro caso já exista)
 		 */
@@ -66,7 +69,7 @@ public class MainPublishMessageRTT {
 						log.println("flow: " + flow);
 						ctx.addBytes(flow, PacketUtil.getArrivalTime(packet), ethernetPacket.getTotalLength());
 
-						log.println("Ethernet frame sizes: \t"+
+						log.println("Ethernet frame size: \t"+
 								"total=" + ethernetPacket.getTotalLength() + "\t"+
 								"header=" + (ethernetPacket.getTotalLength() - ethernetPayloadLen) + "\t"+
 								"payload=" + ethernetPayloadLen);
@@ -80,7 +83,7 @@ public class MainPublishMessageRTT {
 								"total=" + ethernetPayloadLen + "\t"+
 								"header=" + (ethernetPayloadLen - ipPayloadLen) + "\t"+
 								"payload=" + ipPayloadLen);
-						
+
 						if (ipPacket.hasProtocol(Protocol.TCP)) {
 
 							TCPPacket tcpPacket = (TCPPacket) ipPacket.getPacket(Protocol.TCP);
@@ -117,14 +120,20 @@ public class MainPublishMessageRTT {
 									 * Client1 enviando Publish Message para o Broker
 									 */
 									if(tcpPacket.getSourceIP().equals(Constants.CLIENT1_IP)) {
-										 ctx.getLastMqttReceived(qos).add(mqttPacket);
-										 
+										ctx.getLastMqttReceived(qos).add(mqttPacket);
+
+										log.println("CLIENTE ENVIANDO MQTT ####");
 									}
 									/**
 									 * Client1 recebendo o Publish Message do Broker
 									 */
 									else if(tcpPacket.getDestinationIP().equals(Constants.CLIENT1_IP)) {
-										
+
+										log.println("CLIENTE RECEBENDO MQTT ****");
+										log.println(ctx.getLastMqttReceived(0));
+										log.println(ctx.getLastMqttReceived(1));
+										log.println(ctx.getLastMqttReceived(2));
+
 										/**
 										 * Dois MQTTPacket são iguais quando o conteúdo do pacote é igual (atributo 'byte[] data').
 										 * Não conta o tempo de chegada dos pacotes!!
@@ -132,6 +141,8 @@ public class MainPublishMessageRTT {
 										 */
 										int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
 										if(index >= 0) {
+
+											log.println("CLIENTE RECEBENDO RESPOSTA DE ENVIO MQTT @@@@");
 											
 											ctx.getMqttPublishToMqttResponseMap(qos).put(ctx.getLastMqttReceived(qos).remove(index), mqttPacket);
 										} else {
@@ -139,11 +150,11 @@ public class MainPublishMessageRTT {
 											 * Erro estranho: Cliente1 recebendo Publish de uma mensagem que não foi enviada pelo Cliente1. 
 											 */
 										}
-										
+
 									}
-									
+
 								} 
-								
+
 							}
 
 						} else if (packet.hasProtocol(Protocol.UDP)) {
@@ -162,7 +173,7 @@ public class MainPublishMessageRTT {
 
 							}
 						} else {
-							log.println(packet.getProtocol());
+							log.println("Another protocol:" + packet.getProtocol());
 						}
 
 						log.println("============================================================");					
@@ -172,15 +183,22 @@ public class MainPublishMessageRTT {
 			}
 		});
 
-		
+		if(ctx.getMqttPublishToMqttResponseMap(0).isEmpty() &&
+				ctx.getMqttPublishToMqttResponseMap(1).isEmpty() &&
+				ctx.getMqttPublishToMqttResponseMap(2).isEmpty())
+		{
+			System.err.println("Nenhum pacote foi endereçado de/para "+Constants.CLIENT1_IP+".");
+			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Constants.FILEPATH);
+		}
+
 		DataPrinter.printQoSTimeAnalysisRTT(ctx, log, resultTime);
 		DataPrinter.printSeparatedFlows(ctx,resultFlow);
 		DataPrinter.printAllFlows(ctx,printerAllFlow);
-		
+
 		System.out.println("Done!");
-		
+
 	}//fim do main
-	
-	
-	
+
+
+
 }

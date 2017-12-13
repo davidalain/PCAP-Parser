@@ -17,6 +17,9 @@ public class FactoryMQTT {
 		case MQTTPacket.MessageType.CONNECT_COMMAND:		return new MQTTConnectCommand(data, arrivalTime);
 		case MQTTPacket.MessageType.SUBSCRIBE_ACK:			return new MQTTSubscribeAck(data, arrivalTime);
 		case MQTTPacket.MessageType.SUBSCRIBE_REQUEST:		return new MQTTSubscribeRequest(data, arrivalTime);
+		
+		case MQTTPacket.MessageType.PING_REQUEST:			return new MQTTPingRequest(data, arrivalTime);
+		case MQTTPacket.MessageType.PING_RESPONSE:			return new MQTTPingResponse(data, arrivalTime);
 			
 		default:
 			break;

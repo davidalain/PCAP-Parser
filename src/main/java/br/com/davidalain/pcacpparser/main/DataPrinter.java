@@ -15,6 +15,19 @@ import io.pkts.packet.TCPPacket;
 
 public class DataPrinter {
 
+	/**
+	 * Faz a análise da diferença de tempo de:
+	 * 	um Cliente1 enviar um Publish Message para o Broker1,
+	 * 	Broker1 sincronizar a mensagem com o Broker2,
+	 * 	Broker2 retransmitir o Publish Message para o Cliente2. 
+	 * 
+	 * 	Nota: Cliente1 e Cliente2 são dois processos distintos no mesmo hospedeiro. 
+	 * 
+	 * @param ctx
+	 * @param log
+	 * @param resultTime
+	 * @throws FileNotFoundException
+	 */
 	public static void printQoSTimeAnalysisRTT(Context ctx, final PrintStream log, final PrintStream resultTime) throws FileNotFoundException {
 
 		log.println("########################################################################");

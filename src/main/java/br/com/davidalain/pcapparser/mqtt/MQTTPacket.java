@@ -72,7 +72,24 @@ public abstract class MQTTPacket{
 			return false;
 		}
 		
-		return Arrays.equals(this.data, ((MQTTPacket) obj).data);
+		MQTTPacket mqtt = (MQTTPacket) obj;
+		
+		if(this.data[0] != mqtt.data[0])
+			return false;
+		
+		if(this.data[1] != mqtt.data[1])
+			return false;
+		
+		return true;
+		
+		/**
+		 * Não usar o código abaixo para comparação, pois:
+		 *  um Publish Message enviado por um cliente o campo 'Message Identifier' modificado quando
+		 *  o broker envia o mesmo Publish Message para o cliente que está escrito no tópico.
+		 *  
+		 *   Isto faz falhar a condição utilizada para analisar o RTT
+		 */
+//		return Arrays.equals(this.data, ((MQTTPacket) obj).data);
 	}
 	
 	@Override
@@ -106,6 +123,8 @@ public abstract class MQTTPacket{
 		case MessageType.CONNECT_ACK:
 		case MessageType.SUBSCRIBE_REQUEST:
 		case MessageType.SUBSCRIBE_ACK:
+		case MessageType.PING_REQUEST:
+		case MessageType.PING_RESPONSE:
 			break;
 		default:
 			return false;

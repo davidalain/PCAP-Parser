@@ -32,6 +32,8 @@ public class MainClusterSync {
 	 */
 
 	public static void main(String[] args) throws IOException {
+		
+		System.out.println("Running...");
 
 		/**
 		 * Cria o caminho (não dá erro caso já exista)
