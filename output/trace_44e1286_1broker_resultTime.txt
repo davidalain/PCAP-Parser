@@ -1,0 +1,21 @@
+============================= QoS = 0 ===============================
+[]
+max(us)=NaN, max(ms)=NaN, max(s)=NaN
+min(us)=NaN, min(ms)=NaN, min(s)=NaN
+avg(us)=NaN, avg(ms)=NaN, avg(s)=NaN
+median(us)=NaN, median(ms)=NaN, median(s)=NaN
+========================================================================
+============================= QoS = 1 ===============================
+[]
+max(us)=NaN, max(ms)=NaN, max(s)=NaN
+min(us)=NaN, min(ms)=NaN, min(s)=NaN
+avg(us)=NaN, avg(ms)=NaN, avg(s)=NaN
+median(us)=NaN, median(ms)=NaN, median(s)=NaN
+========================================================================
+============================= QoS = 2 ===============================
+[]
+max(us)=NaN, max(ms)=NaN, max(s)=NaN
+min(us)=NaN, min(ms)=NaN, min(s)=NaN
+avg(us)=NaN, avg(ms)=NaN, avg(s)=NaN
+median(us)=NaN, median(ms)=NaN, median(s)=NaN
+========================================================================

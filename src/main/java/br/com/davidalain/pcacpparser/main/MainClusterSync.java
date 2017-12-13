@@ -38,15 +38,15 @@ public class MainClusterSync {
 		/**
 		 * Cria o caminho (não dá erro caso já exista)
 		 */
-		new File(Constants.OUTPUT_FLOW_PATH).mkdirs();
+		new File(Parameters.OUTPUT_FLOW_PATH).mkdirs();
 
-		final Pcap pcap = Pcap.openStream(Constants.FILEPATH);
-		final Context ctx = new Context(Constants.BROKER1_IP, Constants.BROKER2_IP, Constants.CLIENT1_IP, Constants.CLIENT2_IP);
+		final Pcap pcap = Pcap.openStream(Parameters.FILEPATH);
+		final Context ctx = new Context(Parameters.BROKER1_IP, Parameters.BROKER2_IP, Parameters.CLIENT1_IP, Parameters.CLIENT2_IP);
 		final FactoryMQTT factory = new FactoryMQTT();
-		final PrintStream log = new PrintStream(new File(Constants.OUTPUT_PATH+Constants.PREFIX+"_log.txt"));
-		final PrintStream resultTime = new PrintStream(new File(Constants.OUTPUT_PATH+Constants.PREFIX+"_resultTime.txt"));
-		final PrintStream resultFlow = new PrintStream(new File(Constants.OUTPUT_PATH+Constants.PREFIX+"_resultFlow.txt"));
-		final PrintStream printerAllFlow = new PrintStream(new File(Constants.OUTPUT_FLOW_PATH+Constants.PREFIX+"_allFlows.csv"));
+		final PrintStream log = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_log.txt"));
+		final PrintStream resultTime = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_resultTime.txt"));
+		final PrintStream resultFlow = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_resultFlow.txt"));
+		final PrintStream printerAllFlow = new PrintStream(new File(Parameters.OUTPUT_FLOW_PATH+Parameters.PREFIX+"_allFlows.csv"));
 
 		pcap.loop(new PacketHandler() {
 			@Override
@@ -120,8 +120,10 @@ public class MainClusterSync {
 									/**
 									 * Client1 enviando Publish Message para o broker1
 									 */
-									if(tcpPacket.getSourceIP().equals(Constants.CLIENT1_IP) && tcpPacket.getDestinationIP().equals(Constants.BROKER1_IP)) {
+									if(tcpPacket.getSourceIP().equals(Parameters.CLIENT1_IP) && tcpPacket.getDestinationIP().equals(Parameters.BROKER1_IP)) {
 										ctx.setLastMqttReceived(mqttPacket);	
+									}else {
+										log.println("{IP de origem = ("+tcpPacket.getSourceIP()+") != ("+Parameters.CLIENT1_IP+")} ou {IP de destino = ("+tcpPacket.getDestinationIP()+") != ("+Parameters.BROKER1_IP+")}");
 									}
 
 								} else {
@@ -147,7 +149,7 @@ public class MainClusterSync {
 											/**
 											 * Broker1 enviando mensagem de sync para Broker2
 											 */
-											if(tcpPacket.getSourceIP().equals(Constants.BROKER1_IP) && tcpPacket.getDestinationIP().equals(Constants.BROKER2_IP)) {
+											if(true || tcpPacket.getSourceIP().equals(Parameters.BROKER1_IP) && tcpPacket.getDestinationIP().equals(Parameters.BROKER2_IP)) {
 
 												//FIXME:
 												//Note: this is a not safe check, because topic name and message can be equals (same content) or shorter than necessary to guarantee correct working
@@ -209,6 +211,16 @@ public class MainClusterSync {
 			}
 		});
 
+		if(ctx.getMqttToTcpBrokerSyncMap(0).isEmpty() &&
+				ctx.getMqttToTcpBrokerSyncMap(1).isEmpty() &&
+				ctx.getMqttToTcpBrokerSyncMap(2).isEmpty())
+		{
+			System.err.println("Nenhum pacote MQTT foi endereçado de/para "+Parameters.CLIENT1_IP+".");
+			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Parameters.FILEPATH);
+			System.err.println("Ou está acontecendo fragmentação dos segmentos das mensagens MQTT.");
+			
+			System.err.println("Veja o arquivo '" + Parameters.OUTPUT_PATH+Parameters.PREFIX+"_log.txt'");
+		}
 
 		DataPrinter.printQoSTimeAnalysisClusterSync(ctx, log, resultTime);
 		DataPrinter.printSeparatedFlows(ctx,resultFlow);

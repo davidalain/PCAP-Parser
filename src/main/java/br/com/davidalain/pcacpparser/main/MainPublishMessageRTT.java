@@ -36,15 +36,15 @@ public class MainPublishMessageRTT {
 		/**
 		 * Cria o caminho (não dá erro caso já exista)
 		 */
-		new File(Constants.OUTPUT_FLOW_PATH).mkdirs();
+		new File(Parameters.OUTPUT_FLOW_PATH).mkdirs();
 
-		final Pcap pcap = Pcap.openStream(Constants.FILEPATH);
-		final Context ctx = new Context(Constants.BROKER1_IP, Constants.BROKER2_IP, Constants.CLIENT1_IP, Constants.CLIENT2_IP);
+		final Pcap pcap = Pcap.openStream(Parameters.FILEPATH);
+		final Context ctx = new Context(Parameters.BROKER1_IP, Parameters.BROKER2_IP, Parameters.CLIENT1_IP, Parameters.CLIENT2_IP);
 		final FactoryMQTT factory = new FactoryMQTT();
-		final PrintStream log = new PrintStream(new File(Constants.OUTPUT_PATH+Constants.PREFIX+"_log.txt"));
-		final PrintStream resultTime = new PrintStream(new File(Constants.OUTPUT_PATH+Constants.PREFIX+"_resultTime.txt"));
-		final PrintStream resultFlow = new PrintStream(new File(Constants.OUTPUT_PATH+Constants.PREFIX+"_resultFlow.txt"));
-		final PrintStream printerAllFlow = new PrintStream(new File(Constants.OUTPUT_FLOW_PATH+Constants.PREFIX+"_allFlows.csv"));
+		final PrintStream log = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_log.txt"));
+		final PrintStream resultTime = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_resultTime.txt"));
+		final PrintStream resultFlow = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_resultFlow.txt"));
+		final PrintStream printerAllFlow = new PrintStream(new File(Parameters.OUTPUT_FLOW_PATH+Parameters.PREFIX+"_allFlows.csv"));
 
 		pcap.loop(new PacketHandler() {
 			@Override
@@ -119,7 +119,7 @@ public class MainPublishMessageRTT {
 									/**
 									 * Client1 enviando Publish Message para o Broker
 									 */
-									if(tcpPacket.getSourceIP().equals(Constants.CLIENT1_IP)) {
+									if(tcpPacket.getSourceIP().equals(Parameters.CLIENT1_IP)) {
 										ctx.getLastMqttReceived(qos).add(mqttPacket);
 
 										log.println("CLIENTE ENVIANDO MQTT ####");
@@ -127,7 +127,7 @@ public class MainPublishMessageRTT {
 									/**
 									 * Client1 recebendo o Publish Message do Broker
 									 */
-									else if(tcpPacket.getDestinationIP().equals(Constants.CLIENT1_IP)) {
+									else if(tcpPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) {
 
 										log.println("CLIENTE RECEBENDO MQTT ****");
 										log.println(ctx.getLastMqttReceived(0));
@@ -187,8 +187,11 @@ public class MainPublishMessageRTT {
 				ctx.getMqttPublishToMqttResponseMap(1).isEmpty() &&
 				ctx.getMqttPublishToMqttResponseMap(2).isEmpty())
 		{
-			System.err.println("Nenhum pacote foi endereçado de/para "+Constants.CLIENT1_IP+".");
-			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Constants.FILEPATH);
+			System.err.println("Nenhum pacote MQTT foi endereçado de/para "+Parameters.CLIENT1_IP+".");
+			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Parameters.FILEPATH);
+			System.err.println("Ou está acontecendo fragmentação dos segmentos das mensagens MQTT.");
+			
+			System.err.println("Veja o arquivo '" + Parameters.OUTPUT_PATH+Parameters.PREFIX+"_log.txt'");
 		}
 
 		DataPrinter.printQoSTimeAnalysisRTT(ctx, log, resultTime);

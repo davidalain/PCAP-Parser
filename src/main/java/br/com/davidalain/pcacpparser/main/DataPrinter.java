@@ -84,7 +84,7 @@ public class DataPrinter {
 			resultFlow.println("========================================================================");
 
 			final Flow flow = pairFlowThroughtput.getKey();
-			final PrintStream printerCurrentFlow = new PrintStream(new File(Constants.OUTPUT_FLOW_PATH+Constants.PREFIX+"_resultFlow_"+flow.toStringForFileName()+".csv"));
+			final PrintStream printerCurrentFlow = new PrintStream(new File(Parameters.OUTPUT_FLOW_PATH+Parameters.PREFIX+"_resultFlow_"+flow.toStringForFileName()+".csv"));
 
 			resultFlow.println("Flow: " + flow);
 			resultFlow.println();
