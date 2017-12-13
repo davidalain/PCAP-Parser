@@ -13,10 +13,13 @@ public class Context {
 	public static final int QOS_QUANTITY = 3;
 
 	private Map<MQTTPacket,TCPPacket>[] mqttToTcpBrokerSyncMap;
+	private Map<MQTTPacket,MQTTPacket>[] mqttPublishToMqttResponseMap;
+	
 	private List<Long>[] times;
 	private Map<Flow, Map<Long/*second*/, Long/*bytes*/> > mapFlowThroughput;
 
 	private MQTTPacket lastMqttReceived;
+	private List<MQTTPacket>[] lastMqttReceivedQoS;
 
 	private int packerNumber;
 	private long startTimeUs; //used to calculate throughput in each second 
@@ -32,17 +35,23 @@ public class Context {
 		this.broker2IP = broker2ip;
 		this.client1IP = client1ip;
 		this.client2IP = client2ip;
-		
+
+		this.lastMqttReceivedQoS = new List[QOS_QUANTITY];
 		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
+		this.mqttPublishToMqttResponseMap = new HashMap[QOS_QUANTITY];
 		this.times = new ArrayList[QOS_QUANTITY];
+		
 		for(int i = 0 ; i < QOS_QUANTITY ; i++) {
 			this.mqttToTcpBrokerSyncMap[i] = new HashMap<>();
+			this.mqttPublishToMqttResponseMap[i] = new HashMap<>();
+			
+			this.lastMqttReceivedQoS[i] = new ArrayList<>();
 			this.times[i] = new ArrayList<>();
 		}
 
 		this.mapFlowThroughput = new HashMap<>();
 
-		this.lastMqttReceived = null;
+//		this.lastMqttReceived = null;
 
 		this.packerNumber = 0;
 		this.startTimeUs = 0;
@@ -92,6 +101,10 @@ public class Context {
 	public Map<MQTTPacket, TCPPacket> getMqttToTcpBrokerSyncMap(int index) {
 		return mqttToTcpBrokerSyncMap[index];
 	}
+	
+	public Map<MQTTPacket, MQTTPacket> getMqttPublishToMqttResponseMap(int index) {
+		return mqttPublishToMqttResponseMap[index];
+	}
 
 	public MQTTPacket getLastMqttReceived() {
 		return lastMqttReceived;
@@ -101,9 +114,13 @@ public class Context {
 		this.lastMqttReceived = lastMqttReceived;
 	}
 
-	public void getLastMqttReceivedQoS(MQTTPacket lastMqttReceived) {
-		this.lastMqttReceived = lastMqttReceived;
+	public List<MQTTPacket> getLastMqttReceived(int qos) {
+		return this.lastMqttReceivedQoS[qos];
 	}
+	
+//	public void setLastMqttReceivedQoS(List<MQTTPacket> lastMqttReceived, int qos) {
+//		this.lastMqttReceivedQoS[qos] = lastMqttReceived;
+//	}
 
 	public int getPackerNumber() {
 		return packerNumber;

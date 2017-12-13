@@ -1,6 +1,7 @@
 package br.com.davidalain.pcapparser.mqtt;
 
 import java.security.InvalidParameterException;
+import java.util.Arrays;
 
 import br.com.davidalain.pcacpparser.HexPrinter;
 import io.pkts.buffer.Buffer;
@@ -64,6 +65,25 @@ public abstract class MQTTPacket{
 		return data[1];
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+
+		if(!(obj instanceof MQTTPacket)) {
+			return false;
+		}
+		
+		return Arrays.equals(this.data, ((MQTTPacket) obj).data);
+	}
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+//		result = prime * result + (int) (arrivalTime ^ (arrivalTime >>> 32));
+		result = prime * result + Arrays.hashCode(data);
+		return result;
+	}
+	
 	public static boolean isMQTT(Buffer buffer) {
 
 		if(buffer == null)
