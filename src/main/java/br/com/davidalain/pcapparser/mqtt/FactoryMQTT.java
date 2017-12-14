@@ -2,29 +2,32 @@ package br.com.davidalain.pcapparser.mqtt;
 
 public class FactoryMQTT {
 	
-	private int getMessageType(byte[] data) {
-		return ((data[0] & 0xF0) >> 4);
-	}
-
 	public MQTTPacket getMQTTPacket(byte[] data, long arrivalTime) {
 		
-		if(!MQTTPacket.isMQTT(data))
+		if(!MQTTPacket.isMQTT(data)) 
 			return null;
-		
-		switch (getMessageType(data)) {
-		case MQTTPacket.MessageType.PUBLISH_MESSAGE:		return new MQTTPublishMessage(data, arrivalTime);
-		case MQTTPacket.MessageType.CONNECT_ACK:			return new MQTTConnectAck(data, arrivalTime);
-		case MQTTPacket.MessageType.CONNECT_COMMAND:		return new MQTTConnectCommand(data, arrivalTime);
-		case MQTTPacket.MessageType.SUBSCRIBE_ACK:			return new MQTTSubscribeAck(data, arrivalTime);
-		case MQTTPacket.MessageType.SUBSCRIBE_REQUEST:		return new MQTTSubscribeRequest(data, arrivalTime);
-		
-		case MQTTPacket.MessageType.PING_REQUEST:			return new MQTTPingRequest(data, arrivalTime);
-		case MQTTPacket.MessageType.PING_RESPONSE:			return new MQTTPingResponse(data, arrivalTime);
+			
+		switch (MQTTPacket.readMQTTPacketTypeEnum(data)) {
+		case CONNECT: 		return new MQTTPublishMessage(data, arrivalTime);
+		case CONNACK:		return new MQTTConnectAck(data, arrivalTime);
+		case PUBLISH:		return new MQTTPublishMessage(data, arrivalTime);
+		case PUBACK:		return new MQTTPacket(data, arrivalTime); //FIXME
+		case PUBREC:		return new MQTTPacket(data, arrivalTime); //FIXME
+		case PUBREL:		return new MQTTPacket(data, arrivalTime); //FIXME
+		case PUBCOMP:		return new MQTTPacket(data, arrivalTime); //FIXME
+		case SUBSCRIBE:		return new MQTTSubscribeRequest(data, arrivalTime);
+		case SUBACK:		return new MQTTSubscribeAck(data, arrivalTime);
+		case UNSUBSCRIBE:	return new MQTTPacket(data, arrivalTime); //FIXME
+		case UNSUBACK:		return new MQTTPacket(data, arrivalTime); //FIXME
+		case PINGREQ:		return new MQTTPingRequest(data, arrivalTime);
+		case PINGRESP:		return new MQTTPingResponse(data, arrivalTime);
+		case DISCONNECT:	return new MQTTPacket(data, arrivalTime); //FIXME
 			
 		default:
 			break;
 		}
 		
+		System.err.println("Erro estranho. Não é nenhum dos tipos acima. Algum tipo foi esquecido de ser checado.");
 		return null;
 	}
 	

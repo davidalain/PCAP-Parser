@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import br.com.davidalain.pcapparser.mqtt.MQTTFragment;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import io.pkts.packet.TCPPacket;
 
@@ -29,7 +30,9 @@ public class Context {
 	private String broker2IP;
 	private String client1IP;
 	private String client2IP;
-
+	
+	private Map<Flow,MQTTFragment> mapMqttFragments; 
+	
 	public Context(String broker1ip, String broker2ip, String client1ip, String client2ip) {
 		this.broker1IP = broker1ip;
 		this.broker2IP = broker2ip;
@@ -50,7 +53,8 @@ public class Context {
 		}
 
 		this.mapFlowThroughput = new HashMap<>();
-
+		this.mapMqttFragments = new HashMap<>();
+		
 //		this.lastMqttReceived = null;
 
 		this.packerNumber = 0;
@@ -164,6 +168,14 @@ public class Context {
 
 	public void setEndTimeUs(long endTimeUs) {
 		this.endTimeUs = endTimeUs;
+	}
+
+	public Map<Flow, MQTTFragment> getMapMqttFragments() {
+		return mapMqttFragments;
+	}
+
+	public void setMapMqttFragments(Map<Flow, MQTTFragment> mqttFragments) {
+		this.mapMqttFragments = mqttFragments;
 	}
 
 	public void addBytes(Flow flow, long arrivalTimeUs, long bytestoAdd) {

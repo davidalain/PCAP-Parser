@@ -11,6 +11,7 @@ import br.com.davidalain.pcacpparser.Flow;
 import br.com.davidalain.pcacpparser.HexPrinter;
 import br.com.davidalain.pcacpparser.PacketUtil;
 import br.com.davidalain.pcapparser.mqtt.FactoryMQTT;
+import br.com.davidalain.pcapparser.mqtt.MQTTFragment;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import br.com.davidalain.pcapparser.mqtt.MQTTPublishMessage;
 import io.pkts.PacketHandler;
@@ -32,7 +33,7 @@ public class MainClusterSync {
 	 */
 
 	public static void main(String[] args) throws IOException {
-		
+
 		System.out.println("Running...");
 
 		/**
@@ -106,12 +107,13 @@ public class MainClusterSync {
 								log.println(tcpPayload);
 
 								if(MQTTPacket.isMQTT(tcpPayload)) {
+
 									log.println("==== MQTT: ===");
 									log.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
 
 									MQTTPacket mqttPacket = factory.getMQTTPacket(tcpPayloadArray, tcpPacket.getArrivalTime());
 
-									log.println("msgType:"+mqttPacket.getMessageType());
+									log.println("msgType:"+mqttPacket.getMessageTypeEnum());
 									log.println("DUPFlag:"+mqttPacket.getDupFlag());
 									log.println("QoS:"+mqttPacket.getQoS());
 									log.println("RetainFlag:"+mqttPacket.getRetainFlag());
@@ -127,19 +129,103 @@ public class MainClusterSync {
 									}
 
 								} else {
-									//TCP payload não é MQTT. Outro protocolo de camada 7.
+									/** TCP payload não é MQTT ou é um fragmento de um MQTT. **/
 
+									log.println("==== TCP payload não é um MQTT completo: ===");
+
+									/**
+									 * Pacotes com menos de 15 bytes são os possíveis fragmentos
+									 */
+									if(tcpPayloadLen < 15) {
+
+										log.println("==== MQTT fragment: ===");
+										MQTTFragment mqttFragment = ctx.getMapMqttFragments().get(flow);
+
+										/** Ainda não tinha recebido pedaços de uma mensagem MQTT neste fluxo **/
+										if(mqttFragment == null) {
+
+											/** Verifica se é um possível pedaço de MQTT **/
+											if(MQTTPacket.hasPacketType(tcpPayloadArray)) {
+
+												log.println("==== primeiro fragmento ("+flow+") ===");
+
+												mqttFragment = new MQTTFragment(tcpPacket.getArrivalTime()); //Primeiro fragmento
+
+												System.arraycopy(tcpPayloadArray, 0,
+														mqttFragment.getPartialMessageBuffer(), mqttFragment.getPartialMessageLen(), tcpPayloadLen);
+
+												mqttFragment.addPartialMessageLen(tcpPayloadLen);
+
+												log.println(HexPrinter.toStringHexDump(tcpPayloadArray));
+
+												ctx.getMapMqttFragments().put(flow, mqttFragment);
+
+											}
+											/** Não é um pedaço de MQTT. Processa como outro pacote qualquer de camada de aplicação **/
+											else {
+												//Como não é MQTT e é pequeno demais pra uma mensagem sync então nada faz!
+												log.println("==== não tem formato de MQTT ou é pequeno demais ===");
+											}
+										}
+										/** Está recebendo pedaços de uma mensagem MQTT neste fluxo, então armazena os bytes recebidos **/
+										else {
+
+											log.println("==== outro fragmento ("+flow+")===");
+
+											System.arraycopy(tcpPayloadArray, 0,
+													mqttFragment.getPartialMessageBuffer(), mqttFragment.getPartialMessageLen(), tcpPayloadLen);
+
+											mqttFragment.addPartialMessageLen(tcpPayloadLen);
+
+											log.println("fragmento recebido:");
+											log.println(HexPrinter.toStringHexDump(tcpPayloadArray));
+
+											log.println("fragmento parcial:");
+											log.println(HexPrinter.toStringHexDump(mqttFragment.getPartialMessageBuffer(), 0, mqttFragment.getPartialMessageLen()));
+
+											switch (mqttFragment.check()) {
+											case -1: //mensagem inválida
+												ctx.getMapMqttFragments().remove(flow);
+												log.println("==== fragmentos formaram mensagem MQTT inválida ===");
+												break;
+											case 0: //mensagem incompleta (ainda tem bytes pra receber)
+												//faz nada
+												break;
+											case 1: //mensagem completa (processar o pacote recebido)
+												ctx.setLastMqttReceived(mqttFragment.buildMQTTPacket());
+												ctx.getMapMqttFragments().remove(flow);
+												log.println("==== mensagem MQTT remontada ===");
+												break;
+											}
+
+											log.println(ctx.getMapMqttFragments().get(flow));
+
+										}
+
+									}
+									
 									MQTTPacket lastMqtt = ctx.getLastMqttReceived();
+
+									log.println("lastMqtt="+lastMqtt);
+
 									if(lastMqtt != null) {
+
+										/**
+										 * Já recebeu um pacote MQTT. Procura pelo pacote de sync.
+										 */
 
 										log.println("==== Não é MQTT: ===");
 										log.println(HexPrinter.toStringHexDump(tcpPayloadArray));
 
-										int len = ByteBuffer.wrap(tcpPayloadArray, 0, 4).getInt();
-										log.println("len="+len);
+										//Os pacotes de sync tem os primeiros 4 bytes como sendo o tamanho da mensagem de sync, mas ainda não sei sobre os outros campos
+										if(tcpPayloadLen >= 4) {
+											int len = ByteBuffer.wrap(tcpPayloadArray, 0, 4).getInt();
+											log.println("len="+len);
+										}
+
 										log.println(tcpPayloadLen);
 
-										if(lastMqtt.getMessageType() == MQTTPacket.MessageType.PUBLISH_MESSAGE) {
+										if(lastMqtt.getMessageType() == MQTTPacket.PacketType.PUBLISH.value) {
 
 											MQTTPublishMessage mqttPublish = (MQTTPublishMessage) lastMqtt;
 
@@ -149,7 +235,7 @@ public class MainClusterSync {
 											/**
 											 * Broker1 enviando mensagem de sync para Broker2
 											 */
-											if(true || tcpPacket.getSourceIP().equals(Parameters.BROKER1_IP) && tcpPacket.getDestinationIP().equals(Parameters.BROKER2_IP)) {
+											if(true || (tcpPacket.getSourceIP().equals(Parameters.BROKER1_IP) && tcpPacket.getDestinationIP().equals(Parameters.BROKER2_IP))) {
 
 												//FIXME:
 												//Note: this is a not safe check, because topic name and message can be equals (same content) or shorter than necessary to guarantee correct working
@@ -218,7 +304,7 @@ public class MainClusterSync {
 			System.err.println("Nenhum pacote MQTT foi endereçado de/para "+Parameters.CLIENT1_IP+".");
 			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Parameters.FILEPATH);
 			System.err.println("Ou está acontecendo fragmentação dos segmentos das mensagens MQTT.");
-			
+
 			System.err.println("Veja o arquivo '" + Parameters.OUTPUT_PATH+Parameters.PREFIX+"_log.txt'");
 		}
 

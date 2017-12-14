@@ -54,17 +54,19 @@ public class HexPrinter {
 
 		return sb.toString();
 	}
-
-	public static String toStringHexDump(byte[] array) {
+	
+	public static String toStringHexDump(byte[] array, int start, int end) {
 
 		StringBuilder sb = new StringBuilder();
 
 		byte[] line = new byte[16];
 
+		int stop = Math.min(array.length, end);
+		
 		int i;
-		for(i = 0 ; i < array.length ; i += 16) {
+		for(i = start ; i < stop; i += 16) {
 
-			int remainingLen = array.length - i;
+			int remainingLen = stop - i;
 			if(remainingLen >= 16) {
 				System.arraycopy(array, i, line, 0, 16);
 				sb.append(toHexString(line, 0, 8));
@@ -99,6 +101,10 @@ public class HexPrinter {
 		}
 
 		return sb.toString();
+	}
+
+	public static String toStringHexDump(byte[] array) {
+		return toStringHexDump(array, 0, array.length);
 	}
 
 }
