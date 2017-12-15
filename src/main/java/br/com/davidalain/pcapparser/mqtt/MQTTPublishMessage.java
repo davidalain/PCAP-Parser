@@ -22,7 +22,7 @@ public class MQTTPublishMessage extends MQTTPacket{
 
 	public final int getMessageIdentifier() {
 		int index = 4 + getTopicLength();
-		return ((data[index] << 8) | data[index]);
+		return ((data[index] << 8) | data[index+1]);
 	}
 
 	public final byte[] getMessageArray() {
@@ -36,25 +36,25 @@ public class MQTTPublishMessage extends MQTTPacket{
 		return new String(getMessageArray());
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-
-		//Condição que checa a menor mensagem MQTT (apenas dois bytes)
-		if(!super.equals(obj))
-			return false;
-
-		if(!(obj instanceof MQTTPublishMessage))
-			return false;
-		
-		MQTTPublishMessage mqtt = (MQTTPublishMessage) obj;
-
-		if(!this.getTopic().equals(mqtt.getTopic()))
-			return false;
-		
-		if(!this.getMessage().equals(mqtt.getMessage()))
-			return false;
-
-		return true;
-	}
+//	@Override
+//	public boolean equals(Object obj) {
+//
+//		//Condição que checa a menor mensagem MQTT (apenas dois bytes)
+//		if(!super.equals(obj))
+//			return false;
+//
+//		if(!(obj instanceof MQTTPublishMessage))
+//			return false;
+//		
+//		MQTTPublishMessage mqtt = (MQTTPublishMessage) obj;
+//
+//		if(!this.getTopic().equals(mqtt.getTopic()))
+//			return false;
+//		
+//		if(!this.getMessage().equals(mqtt.getMessage()))
+//			return false;
+//
+//		return true;
+//	}
 
 }

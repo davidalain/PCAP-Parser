@@ -122,7 +122,9 @@ public class MainClusterSync {
 									/**
 									 * Client1 enviando Publish Message para o broker1
 									 */
-									if(tcpPacket.getSourceIP().equals(Parameters.CLIENT1_IP) && tcpPacket.getDestinationIP().equals(Parameters.BROKER1_IP)) {
+									if(
+											tcpPacket.getSourceIP().equals(Parameters.CLIENT1_IP) && 
+											tcpPacket.getDestinationIP().equals(Parameters.BROKER1_IP) ) {
 										ctx.setLastMqttReceived(mqttPacket);	
 									}else {
 										log.println("{IP de origem = ("+tcpPacket.getSourceIP()+") != ("+Parameters.CLIENT1_IP+")} ou {IP de destino = ("+tcpPacket.getDestinationIP()+") != ("+Parameters.BROKER1_IP+")}");

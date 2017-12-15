@@ -33,7 +33,7 @@ public class DataPrinter {
 		log.println("########################################################################");
 		for(int qos = 0 ; qos < Context.QOS_QUANTITY ; qos++) {
 			log.println("******************************* QoS = "+qos+" ****************************");
-			for(Entry<MQTTPacket, MQTTPacket> pair : ctx.getMqttPublishToMqttResponseMap(qos).entrySet()) {
+			for(Entry<MQTTPacket, MQTTPacket> pair : ctx.getMqttTXvsRXMap(qos).entrySet()) {
 				log.println("MQTT arrivalTime:" + pair.getKey().getArrivalTime());
 				log.println(HexPrinter.toStringHexDump(pair.getKey().getData()));
 				log.println("MQTT arrivalTime:" + pair.getKey().getArrivalTime());

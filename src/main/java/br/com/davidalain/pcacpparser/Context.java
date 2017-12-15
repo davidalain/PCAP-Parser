@@ -7,14 +7,15 @@ import java.util.Map;
 
 import br.com.davidalain.pcapparser.mqtt.MQTTFragment;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
+import br.com.davidalain.pcapparser.mqtt.MQTTPublishMessage;
 import io.pkts.packet.TCPPacket;
 
 public class Context {
 
 	public static final int QOS_QUANTITY = 3;
 
-	private Map<MQTTPacket,TCPPacket>[] mqttToTcpBrokerSyncMap;
-	private Map<MQTTPacket,MQTTPacket>[] mqttPublishToMqttResponseMap;
+	private final Map<MQTTPacket,TCPPacket>[] mqttToTcpBrokerSyncMap;
+	private final Map<MQTTPacket,MQTTPacket>[] mqttTXvsRXMap;
 	
 	private List<Long>[] times;
 	private Map<Flow, Map<Long/*second*/, Long/*bytes*/> > mapFlowThroughput;
@@ -41,12 +42,13 @@ public class Context {
 
 		this.lastMqttReceivedQoS = new List[QOS_QUANTITY];
 		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
-		this.mqttPublishToMqttResponseMap = new HashMap[QOS_QUANTITY];
+		this.mqttTXvsRXMap = new HashMap[QOS_QUANTITY];
+		
 		this.times = new ArrayList[QOS_QUANTITY];
 		
 		for(int i = 0 ; i < QOS_QUANTITY ; i++) {
 			this.mqttToTcpBrokerSyncMap[i] = new HashMap<>();
-			this.mqttPublishToMqttResponseMap[i] = new HashMap<>();
+			this.mqttTXvsRXMap[i] = new HashMap<>();
 			
 			this.lastMqttReceivedQoS[i] = new ArrayList<>();
 			this.times[i] = new ArrayList<>();
@@ -102,14 +104,14 @@ public class Context {
 		this.mapFlowThroughput = mapFlowThroughput;
 	}
 
-	public Map<MQTTPacket, TCPPacket> getMqttToTcpBrokerSyncMap(int index) {
-		return mqttToTcpBrokerSyncMap[index];
+	public Map<MQTTPacket, TCPPacket> getMqttToTcpBrokerSyncMap(int qosIndex) {
+		return mqttToTcpBrokerSyncMap[qosIndex];
 	}
 	
-	public Map<MQTTPacket, MQTTPacket> getMqttPublishToMqttResponseMap(int index) {
-		return mqttPublishToMqttResponseMap[index];
+	public Map<MQTTPacket, MQTTPacket> getMqttTXvsRXMap(int qosIndex) {
+		return mqttTXvsRXMap[qosIndex];
 	}
-
+	
 	public MQTTPacket getLastMqttReceived() {
 		return lastMqttReceived;
 	}
