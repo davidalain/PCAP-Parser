@@ -19,9 +19,17 @@ public class Flow {
 		this.dstPort = destPort;
 	}
 	
-	public Flow(Packet packet) throws IOException {
-		this(PacketUtil.getSourceIP(packet), PacketUtil.getSourcePort(packet), PacketUtil.getDestinationIP(packet), PacketUtil.getDestinationPort(packet));
+	private Flow(final PacketProcessingUtil util, final Packet packet) throws IOException {
+		this(util.getSourceIP(packet), util.getSourcePort(packet), util.getDestinationIP(packet), util.getDestinationPort(packet));
 	}
+	
+	public Flow(Packet packet) throws IOException {
+		this(new PacketProcessingUtil(), packet);
+	}
+	
+//	public Flow(Packet packet) throws IOException {
+//		this(new PacketProcessingUtil().getSourceIP(packet), new PacketProcessingUtil().getSourcePort(packet), new PacketProcessingUtil().getDestinationIP(packet), new PacketProcessingUtil().getDestinationPort(packet));
+//	}
 	
 	public String getSrcIp() {
 		return srcIp;

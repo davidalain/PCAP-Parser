@@ -1,14 +1,13 @@
 package br.com.davidalain.pcacpparser.main;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.Map.Entry;
 
 import br.com.davidalain.pcacpparser.Context;
+import br.com.davidalain.pcacpparser.DataPrinter;
 import br.com.davidalain.pcacpparser.Flow;
 import br.com.davidalain.pcacpparser.HexPrinter;
-import br.com.davidalain.pcacpparser.PacketUtil;
+import br.com.davidalain.pcacpparser.PacketProcessingUtil;
 import br.com.davidalain.pcapparser.mqtt.FactoryMQTT;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import br.com.davidalain.pcapparser.mqtt.MQTTPubAck;
@@ -36,18 +35,10 @@ public class MainPublishMessageRTT {
 
 		System.out.println("Running...");
 
-		/**
-		 * Cria o caminho (não dá erro caso já exista)
-		 */
-		new File(Parameters.OUTPUT_FLOW_PATH).mkdirs();
-
-		final Pcap pcap = Pcap.openStream(Parameters.FILEPATH);
+		final Pcap pcap = Pcap.openStream(Parameters.PCAP_FILEPATH);
 		final Context ctx = new Context(Parameters.BROKER1_IP, Parameters.BROKER2_IP, Parameters.CLIENT1_IP, Parameters.CLIENT2_IP);
 		final FactoryMQTT factory = new FactoryMQTT();
-		final PrintStream log = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_log.txt"));
-		final PrintStream resultTime = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_resultTime.txt"));
-		final PrintStream resultFlow = new PrintStream(new File(Parameters.OUTPUT_PATH+Parameters.PREFIX+"_resultFlow.txt"));
-		final PrintStream printerAllFlow = new PrintStream(new File(Parameters.OUTPUT_FLOW_PATH+Parameters.PREFIX+"_allFlows.csv"));
+		final DataPrinter printer = new DataPrinter();
 
 		pcap.loop(new PacketHandler() {
 			@Override
@@ -56,8 +47,8 @@ public class MainPublishMessageRTT {
 				ctx.incrementPackerNumber();
 
 				if (packet.hasProtocol(Protocol.ETHERNET_II)) {
-					log.println("============================================================");
-					log.println("packetNumber: " + ctx.getPackerNumber());
+					printer.log.println("============================================================");
+					printer.log.println("packetNumber: " + ctx.getPackerNumber());
 
 					MACPacket ethernetPacket = (MACPacket) packet.getPacket(Protocol.ETHERNET_II);
 					Buffer ethernetPayload = ethernetPacket.getPayload();
@@ -68,11 +59,11 @@ public class MainPublishMessageRTT {
 
 						Flow flow = new Flow(ethernetPacket);
 
-						log.println("time(us): " + PacketUtil.getArrivalTime(packet));
-						log.println("flow: " + flow);
-						ctx.addBytes(flow, PacketUtil.getArrivalTime(packet), ethernetPacket.getTotalLength());
+						printer.log.println("time(us): " + new PacketProcessingUtil().getArrivalTime(packet));
+						printer.log.println("flow: " + flow);
+						ctx.addBytes(flow, new PacketProcessingUtil().getArrivalTime(packet), ethernetPacket.getTotalLength());
 
-						log.println("Ethernet frame size: \t"+
+						printer.log.println("Ethernet frame size: \t"+
 								"total=" + ethernetPacket.getTotalLength() + "\t"+
 								"header=" + (ethernetPacket.getTotalLength() - ethernetPayloadLen) + "\t"+
 								"payload=" + ethernetPayloadLen);
@@ -82,7 +73,7 @@ public class MainPublishMessageRTT {
 						byte[] ipPayloadArray = ipPayload.getArray();
 						int ipPayloadLen = ipPayloadArray.length;
 
-						log.println("IP datagram size: \t\t"+
+						printer.log.println("IP datagram size: \t\t"+
 								"total=" + ethernetPayloadLen + "\t"+
 								"header=" + (ethernetPayloadLen - ipPayloadLen) + "\t"+
 								"payload=" + ipPayloadLen);
@@ -97,27 +88,27 @@ public class MainPublishMessageRTT {
 								byte[] tcpPayloadArray = tcpPayload.getArray();
 								int tcpPayloadLen = tcpPayloadArray.length;
 
-								log.println("TCP segment size: \t\t"+
+								printer.log.println("TCP segment size: \t\t"+
 										"total=" + ipPayloadLen + "\t"+
 										"header=" + (ipPayloadLen - tcpPayloadLen) + "\t"+
 										"payload=" + tcpPayloadLen);
 
-								log.println(tcpPayloadArray.length);
-								log.println(HexPrinter.toStringHexDump(tcpPayloadArray));
-								log.println(tcpPayload);
+								printer.log.println(tcpPayloadArray.length);
+								printer.log.println(HexPrinter.toStringHexDump(tcpPayloadArray));
+								printer.log.println(tcpPayload);
 
 								if(MQTTPacket.isMQTT(tcpPayload)) {
 
-									log.println("==== MQTT: ===");
-									log.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
+									printer.log.println("==== MQTT: ===");
+									printer.log.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
 
 									MQTTPacket mqttPacket = factory.getMQTTPacket(tcpPayloadArray, tcpPacket.getArrivalTime());
 
-									log.println("msgType:"+mqttPacket.getMessageType());
-									log.println("DUPFlag:"+mqttPacket.getDupFlag());
-									log.println("QoS:"+mqttPacket.getQoS());
-									log.println("RetainFlag:"+mqttPacket.getRetainFlag());
-									log.println("msgLen:"+mqttPacket.getMessageLength());
+									printer.log.println("msgType:"+mqttPacket.getMessageType());
+									printer.log.println("DUPFlag:"+mqttPacket.getDupFlag());
+									printer.log.println("QoS:"+mqttPacket.getQoS());
+									printer.log.println("RetainFlag:"+mqttPacket.getRetainFlag());
+									printer.log.println("msgLen:"+mqttPacket.getMessageLength());
 
 									int qos = mqttPacket.getQoS();
 									/**
@@ -130,7 +121,7 @@ public class MainPublishMessageRTT {
 									{
 										ctx.getLastMqttReceived(mqttPacket.getQoS()).add(mqttPacket);
 
-										log.println("CLIENTE ENVIANDO MQTT ####");
+										printer.log.println("CLIENTE ENVIANDO MQTT ####");
 									}
 
 									/**
@@ -141,7 +132,7 @@ public class MainPublishMessageRTT {
 											(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value))
 									{
 
-										log.println("CLIENTE RECEBENDO MQTT ****");
+										printer.log.println("CLIENTE RECEBENDO MQTT ****");
 
 										/**
 										 * Duas mensagens PUBLISH são iguais quando tem o mesmo tipo, tamanho, tópico e mensagem.
@@ -154,10 +145,10 @@ public class MainPublishMessageRTT {
 										int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
 										if(index >= 0) {
 
-											log.println("== Cliente recebendo do broker a mensagem de Publish que foi enviada anteriormente ==");
+											printer.log.println("== Cliente recebendo do broker a mensagem de Publish que foi enviada anteriormente ==");
 											MQTTPublishMessage publish =  (MQTTPublishMessage) mqttPacket;
-											log.println("topico:"+publish.getTopic());
-											log.println("message:"+publish.getMessage());
+											printer.log.println("topico:"+publish.getTopic());
+											printer.log.println("message:"+publish.getMessage());
 
 											ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index), mqttPacket);
 										} else {
@@ -179,7 +170,7 @@ public class MainPublishMessageRTT {
 											(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value))
 									{
 
-										log.println("== Cliente recebeu PUBLISH ==");
+										printer.log.println("== Cliente recebeu PUBLISH ==");
 
 										/**
 										 * @note indexOf() usa equals().
@@ -189,7 +180,7 @@ public class MainPublishMessageRTT {
 										int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
 										if(index >= 0) {
 
-											log.println("== PUBLISH recebido é o mesmo enviado (topico e mensagem são iguais) ==");
+											printer.log.println("== PUBLISH recebido é o mesmo enviado (topico e mensagem são iguais) ==");
 
 											//Guarda a mensagem de publish recebido que contém o 'Message ID' do PUBACK que vai ser enviado para depois trocar no mapa essa PUBLISH pelo PUBACK.
 											ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index)	, mqttPacket);
@@ -208,7 +199,7 @@ public class MainPublishMessageRTT {
 											(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBACK.value))
 									{
 
-										log.println(" == PUBACK enviado ==");
+										printer.log.println(" == PUBACK enviado ==");
 
 										for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(1).entrySet()) {
 
@@ -245,7 +236,7 @@ public class MainPublishMessageRTT {
 										int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
 										if(index >= 0) {
 
-											log.println("CLIENTE RECEBENDO RESPOSTA DE ENVIO MQTT @@@@");
+											printer.log.println("CLIENTE RECEBENDO RESPOSTA DE ENVIO MQTT @@@@");
 
 											ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index), mqttPacket);
 										} else {
@@ -263,7 +254,7 @@ public class MainPublishMessageRTT {
 											(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBCOMP.value))
 									{
 
-										log.println(" == PUBCOMP enviado ==");
+										printer.log.println(" == PUBCOMP enviado ==");
 
 										for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(2).entrySet()) {
 
@@ -300,17 +291,17 @@ public class MainPublishMessageRTT {
 								byte[] udpPayloadArray = udpPayload.getArray();
 								int udpPayloadLen = udpPayloadArray.length;
 
-								log.println("TCP segment size: \t\t"+
+								printer.log.println("TCP segment size: \t\t"+
 										"total=" + ipPayloadLen + "\t"+
 										"header=" + (ipPayloadLen - udpPayloadLen) + "\t"+
 										"payload=" + udpPayloadLen);
 
 							}
 						} else {
-							log.println("Another protocol:" + packet.getProtocol());
+							printer.log.println("Another protocol:" + packet.getProtocol());
 						}
 
-						log.println("============================================================");					
+						printer.log.println("============================================================");					
 					}
 				}
 				return true;
@@ -322,15 +313,15 @@ public class MainPublishMessageRTT {
 				ctx.getMqttTXvsRXMap(2).isEmpty())
 		{
 			System.err.println("Nenhum pacote MQTT foi endereçado de/para "+Parameters.CLIENT1_IP+".");
-			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Parameters.FILEPATH);
+			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Parameters.PCAP_FILEPATH);
 			System.err.println("Ou está acontecendo fragmentação dos segmentos das mensagens MQTT.");
 
-			System.err.println("Veja o arquivo '" + Parameters.OUTPUT_PATH+Parameters.PREFIX+"_log.txt'");
+			System.err.println("Veja o arquivo '" + Parameters.LOG_FILEPATH);
 		}
 
-		DataPrinter.printQoSTimeAnalysisRTT(ctx, log, resultTime);
-		DataPrinter.printSeparatedFlows(ctx,resultFlow);
-		DataPrinter.printAllFlows(ctx,printerAllFlow);
+		printer.printQoSTimeAnalysisRTT(ctx);
+		printer.printSeparatedFlows(ctx);
+		printer.printAllFlows(ctx);
 
 		System.out.println("Done!");
 

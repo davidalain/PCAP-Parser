@@ -6,7 +6,7 @@ import java.util.Arrays;
 import br.com.davidalain.pcacpparser.HexPrinter;
 import io.pkts.buffer.Buffer;
 
-public /*abstract*/ class MQTTPacket{
+public /*abstract*/ class MQTTPacket {
 
 	/**
 	 * @see http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Table_2.1_-

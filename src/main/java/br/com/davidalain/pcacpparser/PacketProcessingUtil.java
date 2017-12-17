@@ -1,0 +1,486 @@
+package br.com.davidalain.pcacpparser;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Map.Entry;
+
+import br.com.davidalain.pcacpparser.main.Parameters;
+import br.com.davidalain.pcapparser.mqtt.FactoryMQTT;
+import br.com.davidalain.pcapparser.mqtt.MQTTFragment;
+import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
+import br.com.davidalain.pcapparser.mqtt.MQTTPubAck;
+import br.com.davidalain.pcapparser.mqtt.MQTTPubComplete;
+import br.com.davidalain.pcapparser.mqtt.MQTTPublishMessage;
+import io.pkts.buffer.Buffer;
+import io.pkts.packet.IPPacket;
+import io.pkts.packet.MACPacket;
+import io.pkts.packet.Packet;
+import io.pkts.packet.TCPPacket;
+import io.pkts.packet.UDPPacket;
+import io.pkts.packet.impl.ApplicationPacket;
+import io.pkts.protocol.Protocol;
+
+public class PacketProcessingUtil {
+
+	public long getArrivalTime(final Packet packet) {
+		return packet.getArrivalTime();
+	}
+
+	public String getSourceIP(final Packet packet) throws IOException {
+
+		if(!packet.hasProtocol(Protocol.IPv4))
+			return null;
+
+		IPPacket ip = (IPPacket) packet.getPacket(Protocol.IPv4);
+		return ip.getSourceIP();
+	}
+
+	public String getDestinationIP(final Packet packet) throws IOException {
+
+		if(!packet.hasProtocol(Protocol.IPv4))
+			return null;
+
+		IPPacket ip = (IPPacket) packet.getPacket(Protocol.IPv4);
+		return ip.getDestinationIP();
+	}
+
+	public int getSourcePort(final Packet packet) throws IOException {
+
+		if(packet.hasProtocol(Protocol.TCP)) {
+			TCPPacket ip = (TCPPacket) packet.getPacket(Protocol.TCP);
+			return ip.getSourcePort();
+		}
+
+		if(packet.hasProtocol(Protocol.UDP)) {
+			UDPPacket ip = (UDPPacket) packet.getPacket(Protocol.UDP);
+			return ip.getSourcePort();
+		}
+
+		return -1;
+	}
+
+	public int getDestinationPort(final Packet packet) throws IOException {
+
+		if(packet.hasProtocol(Protocol.TCP)) {
+			TCPPacket ip = (TCPPacket) packet.getPacket(Protocol.TCP);
+			return ip.getDestinationPort();
+		}
+
+		if(packet.hasProtocol(Protocol.UDP)) {
+			UDPPacket ip = (UDPPacket) packet.getPacket(Protocol.UDP);
+			return ip.getDestinationPort();
+		}
+
+		return -1;
+	}
+
+	public PacketBuffer processMACPacket(final MACPacket ethernetPacket, final Context ctx, final DataPrinter printer) throws IOException {
+
+		final Buffer ethernetPayload = ethernetPacket.getPayload();
+		final byte[] ethernetPayloadArray = ethernetPayload.getArray();
+		final int ethernetPayloadLen = ethernetPayloadArray.length;
+		PacketBuffer packetBuffer = null;
+
+		printer.log.println("Ethernet frame size: \t"+
+				"total=" + ethernetPacket.getTotalLength() + "\t"+
+				"header=" + (ethernetPacket.getTotalLength() - ethernetPayloadLen) + "\t"+
+				"payload=" + ethernetPayloadLen);
+
+
+		if(ethernetPacket.getNextPacket() != null) {
+			packetBuffer = new PacketBuffer(ethernetPacket.getNextPacket(), ethernetPacket.getPayload());
+		}
+
+		return packetBuffer;
+	}
+
+	public PacketBuffer processIPPacket(final PacketBuffer ipPacketBuffer, final Context ctx, final DataPrinter printer) throws IOException{
+
+		if(ipPacketBuffer.asPacket() == null || 
+				!ipPacketBuffer.asPacket().hasProtocol(Protocol.TCP) || 
+				!ipPacketBuffer.asPacket().hasProtocol(Protocol.UDP))
+			return null;
+
+		final IPPacket ipPacket = (IPPacket) ipPacketBuffer.asPacket();
+		final int ipPacketLen = ipPacketBuffer.asPayloadBuffer().getArray().length;
+		final Buffer ipPayload = ipPacket.getPayload();
+		final byte[] ipPayloadArray = ipPayload.getArray();
+		final int ipPayloadLen = ipPayloadArray.length;
+		PacketBuffer packetBuffer = null;
+
+		printer.log.println("IP datagram size: \t\t"+
+				"total=" + ipPacketLen + "\t"+
+				"header=" + (ipPacketLen - ipPayloadLen) + "\t"+
+				"payload=" + ipPayloadLen);
+
+		if(ipPacket.getNextPacket() != null) {
+			packetBuffer = new PacketBuffer(ipPacket.getNextPacket(), ipPacket.getPayload());
+		}
+
+		return packetBuffer;
+	}
+
+	public PacketBuffer processTCPPacket(final PacketBuffer tcpPacketBuffer, final Context ctx, final DataPrinter printer) throws IOException {
+
+		final TCPPacket tcpPacket = (TCPPacket) tcpPacketBuffer.asPacket();
+		final int tcpPacketLen = tcpPacketBuffer.asPayloadBuffer().getArray().length;
+		final Buffer tcpPayload = tcpPacket.getPayload();
+		PacketBuffer packetBuffer = null;
+
+		if (tcpPayload != null) {
+
+			byte[] applicationPacketArray = tcpPayload.getArray();
+			int applicationPacketLen = applicationPacketArray.length;
+
+			printer.log.println("TCP segment size: \t\t"+
+					"total=" + tcpPacketLen + "\t"+
+					"header=" + (tcpPacketLen - applicationPacketLen) + "\t"+
+					"payload=" + applicationPacketLen);
+
+			printer.log.println(applicationPacketArray.length);
+			printer.log.println(HexPrinter.toStringHexDump(applicationPacketArray));
+			printer.log.println(tcpPayload);
+
+			if(tcpPacket.getNextPacket() != null) {
+				packetBuffer = new PacketBuffer(tcpPacket.getNextPacket(), tcpPacket.getPayload());
+			}
+
+		}
+
+		return packetBuffer;
+	}
+
+	public void processApplicationPacket(final PacketBuffer applicationPacketBuffer, final Context ctx, final DataPrinter printer) throws IOException {
+
+		if(applicationPacketBuffer == null)
+			return;
+
+		final ApplicationPacket applicationPacket = (ApplicationPacket) applicationPacketBuffer.asPacket();
+		final byte[] applicationPacketArray = applicationPacketBuffer.asPayloadBuffer().getArray();
+		final int applicationPacketLen = applicationPacketArray.length;
+		final Flow flow = new Flow(applicationPacket);
+
+		if(MQTTPacket.isMQTT(applicationPacketArray)) {
+
+			printer.log.println("==== MQTT: ===");
+			printer.log.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
+
+			MQTTPacket mqttPacket = new FactoryMQTT().getMQTTPacket(applicationPacketArray, applicationPacket.getArrivalTime());
+
+			printer.log.println("msgType:"+mqttPacket.getMessageType());
+			printer.log.println("DUPFlag:"+mqttPacket.getDupFlag());
+			printer.log.println("QoS:"+mqttPacket.getQoS());
+			printer.log.println("RetainFlag:"+mqttPacket.getRetainFlag());
+			printer.log.println("msgLen:"+mqttPacket.getMessageLength());
+
+			int qos = mqttPacket.getQoS();
+			/**
+			 * Client1 enviando Publish Message para o Broker
+			 */
+			if(
+					applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP) &&
+					//tcpPacket.getDestinationIP().equals(Parameters.CLIENT1_IP) &&
+					mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value ) 
+			{
+				ctx.getLastMqttReceived(mqttPacket.getQoS()).add(mqttPacket);
+
+				printer.log.println("CLIENTE ENVIANDO MQTT ####");
+			}
+
+			/**
+			 * QoS 0 - Client1 recebendo o PUBLISH do Broker
+			 */
+			else if((applicationPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) &&
+					(qos == 0) &&
+					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value))
+			{
+
+				printer.log.println("CLIENTE RECEBENDO MQTT ****");
+
+				/**
+				 * Duas mensagens PUBLISH são iguais quando tem o mesmo tipo, tamanho, tópico e mensagem.
+				 * Não conta o tempo de chegada dos pacotes.
+				 * 
+				 * @note indexOf() usa equals().
+				 * 
+				 * @see equals() em MQTTPacket
+				 */
+				int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
+				if(index >= 0) {
+
+					printer.log.println("== Cliente recebendo do broker a mensagem de Publish que foi enviada anteriormente ==");
+					MQTTPublishMessage publish =  (MQTTPublishMessage) mqttPacket;
+					printer.log.println("topico:"+publish.getTopic());
+					printer.log.println("message:"+publish.getMessage());
+
+					ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index), mqttPacket);
+				} else {
+					/**
+					 * Erro estranho: Cliente1 recebendo Publish de uma mensagem que não foi enviada pelo Cliente1. 
+					 */
+				}
+
+			}
+			/**
+			 * QoS 1 - Parte 1 - Client1 recebendo o PUBLISH do Broker
+			 * 
+			 * Guardar o PUBLISH enviado pelo broker para o cliente que contém o mesmo 'Message ID' da mensagem
+			 * de PUBACK que o cliente vai enviar para o broker.
+			 * O tempo será contabilizado através dessa mensagem PUBACK.
+			 */
+			else if((applicationPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) &&
+					(qos == 1) &&
+					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value))
+			{
+
+				printer.log.println("== Cliente recebeu PUBLISH ==");
+
+				/**
+				 * @note indexOf() usa equals().
+				 * 
+				 * @see equals() em MQTTPacket
+				 */
+				int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
+				if(index >= 0) {
+
+					printer.log.println("== PUBLISH recebido é o mesmo enviado (topico e mensagem são iguais) ==");
+
+					//Guarda a mensagem de publish recebido que contém o 'Message ID' do PUBACK que vai ser enviado para depois trocar no mapa essa PUBLISH pelo PUBACK.
+					ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index)	, mqttPacket);
+				} else {
+					/**
+					 * Erro estranho: Cliente1 recebendo Publish de uma mensagem que não foi enviada pelo Cliente1. 
+					 */
+				}
+
+			}
+			/**
+			 * QoS 1 - Parte 2 - Client1 enviando o PUBACK para o broker
+			 */
+			else if((applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP)) &&
+					(mqttPacket.getQoS() == 0) && //o PUBACK (enviado como confirmação de um PUBLISH com QoS 1) tem QoS 0
+					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBACK.value))
+			{
+
+				printer.log.println(" == PUBACK enviado ==");
+
+				for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(1).entrySet()) {
+
+					MQTTPublishMessage publishRx = (MQTTPublishMessage) pair.getValue();
+					MQTTPubAck pubAckRx = (MQTTPubAck) mqttPacket;
+
+					//Substitui o MQTT PUblish recebido pelo Publish ACK enviado (que contém o tempo final).
+					//O PUBLISH que é a chave do mapa contém o tempo inicial.
+					if(publishRx.getMessageIdentifier() == pubAckRx.getMessageIdentifier()) {
+						ctx.getMqttTXvsRXMap(1).put(pair.getKey(), pubAckRx);
+						break;
+					}
+
+				}
+
+			}
+			/**
+			 * QoS 2 - Client1 recebendo o PUBLISH do Broker
+			 * 
+			 * Guardar o PUBLISH enviado pelo broker para o cliente que contém o mesmo 'Message ID' da mensagem
+			 * de PUBCOMP que o cliente vai enviar para o broker.
+			 * O tempo será contabilizado através dessa mensagem PUBCOMP.
+			 */
+			else if((applicationPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) &&
+					(qos == 2) &&
+					(mqttPacket.getMessageTypeEnum().equals(MQTTPacket.PacketType.PUBLISH))) 
+			{
+
+				/**
+				 * @note indexOf() usa equals().
+				 * 
+				 * @see equals() em MQTTPacket
+				 */
+				int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
+				if(index >= 0) {
+
+					printer.log.println("CLIENTE RECEBENDO RESPOSTA DE ENVIO MQTT @@@@");
+
+					ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index), mqttPacket);
+				} else {
+					/**
+					 * Erro estranho: Cliente1 recebendo Publish de uma mensagem que não foi enviada pelo Cliente1. 
+					 */
+				}
+
+			}
+			/**
+			 * QoS 2 - Parte 2 - Client1 enviando o PUBCOMPLETE para o broker
+			 */
+			else if((applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP)) &&
+					(mqttPacket.getQoS() == 0) && //o PUBCOMP (enviado como confirmação de um PUBLISH com QoS 2) tem QoS 0
+					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBCOMP.value))
+			{
+
+				printer.log.println(" == PUBCOMP enviado ==");
+
+				for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(2).entrySet()) {
+
+					MQTTPublishMessage publishRx = (MQTTPublishMessage) pair.getValue();
+					MQTTPubComplete pubCompleteRx = (MQTTPubComplete) mqttPacket;
+
+					//Substitui o MQTT PUblish recebido pelo Publish Complete enviado (que contém o tempo final).
+					//O PUBLISH que é a chave do mapa contém o tempo inicial.
+					if(publishRx.getMessageIdentifier() == pubCompleteRx.getMessageIdentifier()) {
+						ctx.getMqttTXvsRXMap(2).put(pair.getKey(), pubCompleteRx);
+						break;
+					}
+
+				}
+
+			}
+
+		}
+		/**
+		 * TCP payload não é MQTT ou é um fragmento de um MQTT.
+		 */
+		else {
+			
+			printer.log.println("==== TCP payload (application packet) não é um MQTT completo: ===");
+
+			/**
+			 * Pacotes com menos de 15 bytes são os possíveis fragmentos
+			 */
+			if(applicationPacketLen < 15) {
+
+				printer.log.println("==== MQTT fragment: ===");
+				MQTTFragment mqttFragment = ctx.getMapMqttFragments().get(flow);
+
+				/** Ainda não tinha recebido pedaços de uma mensagem MQTT neste fluxo **/
+				if(mqttFragment == null) {
+
+					/** Verifica se é um possível pedaço de MQTT **/
+					if(MQTTPacket.hasPacketType(applicationPacketArray)) {
+
+						printer.log.println("==== primeiro fragmento ("+flow+") ===");
+
+						mqttFragment = new MQTTFragment(applicationPacket.getArrivalTime()); //Primeiro fragmento
+
+						System.arraycopy(applicationPacketArray, 0,
+								mqttFragment.getPartialMessageBuffer(), mqttFragment.getPartialMessageLen(), applicationPacketLen);
+
+						mqttFragment.addPartialMessageLen(applicationPacketLen);
+
+						printer.log.println(HexPrinter.toStringHexDump(applicationPacketArray));
+
+						ctx.getMapMqttFragments().put(flow, mqttFragment);
+
+					}
+					/** Não é um pedaço de MQTT. Processa como outro pacote qualquer de camada de aplicação **/
+					else {
+						//Como não é MQTT e é pequeno demais pra uma mensagem sync então nada faz!
+						printer.log.println("==== não tem formato de MQTT ou é pequeno demais ===");
+					}
+				}
+				/** Está recebendo pedaços de uma mensagem MQTT neste fluxo, então armazena os bytes recebidos **/
+				else {
+
+					printer.log.println("==== outro fragmento ("+flow+")===");
+
+					System.arraycopy(applicationPacketArray, 0,
+							mqttFragment.getPartialMessageBuffer(), mqttFragment.getPartialMessageLen(), applicationPacketLen);
+
+					mqttFragment.addPartialMessageLen(applicationPacketLen);
+
+					printer.log.println("fragmento recebido:");
+					printer.log.println(HexPrinter.toStringHexDump(applicationPacketArray));
+
+					printer.log.println("fragmento parcial:");
+					printer.log.println(HexPrinter.toStringHexDump(mqttFragment.getPartialMessageBuffer(), 0, mqttFragment.getPartialMessageLen()));
+
+					switch (mqttFragment.check()) {
+					case -1: //mensagem inválida
+						ctx.getMapMqttFragments().remove(flow);
+						printer.log.println("==== fragmentos formaram mensagem MQTT inválida ===");
+						break;
+					case 0: //mensagem incompleta (ainda tem bytes pra receber)
+						//faz nada
+						break;
+					case 1: //mensagem completa (processar o pacote recebido)
+						ctx.setLastMqttReceived(mqttFragment.buildMQTTPacket());
+						ctx.getMapMqttFragments().remove(flow);
+						printer.log.println("==== mensagem MQTT remontada ===");
+						break;
+					}
+
+					printer.log.println(ctx.getMapMqttFragments().get(flow));
+
+				}
+
+			}
+			
+			MQTTPacket lastMqtt = ctx.getLastMqttReceived();
+
+			printer.log.println("lastMqtt="+lastMqtt);
+
+			if(lastMqtt != null) {
+
+				/**
+				 * Já recebeu um pacote MQTT. Procura pelo pacote de sync.
+				 */
+
+				printer.log.println("==== Não é MQTT: ===");
+				printer.log.println(HexPrinter.toStringHexDump(applicationPacketArray));
+
+				//Os pacotes de sync tem os primeiros 4 bytes como sendo o tamanho da mensagem de sync, mas ainda não sei sobre os outros campos
+				if(applicationPacketLen >= 4) {
+					int len = ByteBuffer.wrap(applicationPacketArray, 0, 4).getInt();
+					printer.log.println("len="+len);
+				}
+
+				printer.log.println(applicationPacketLen);
+
+				if(lastMqtt.getMessageType() == MQTTPacket.PacketType.PUBLISH.value) {
+
+					MQTTPublishMessage mqttPublish = (MQTTPublishMessage) lastMqtt;
+
+					byte[] topic = mqttPublish.getTopicArray();
+					byte[] message = mqttPublish.getMessageArray();
+
+					/**
+					 * Broker1 enviando mensagem de sync para Broker2
+					 */
+					if(true || (applicationPacket.getSourceIP().equals(Parameters.BROKER1_IP) && applicationPacket.getDestinationIP().equals(Parameters.BROKER2_IP))) {
+
+						//FIXME:
+						//Note: this is a not safe check, because topic name and message can be equals (same content) or shorter than necessary to guarantee correct working
+						//The correct way to check is analyze if topic and message are into TCP payload at the their specific correct positions
+						if(
+								ArraysUtil.contains(applicationPacketArray, topic) &&
+								ArraysUtil.contains(applicationPacketArray, message)) 
+						{
+
+							//This is the TCP Segment that broker uses to synchronize last MQTT Publish Message to another broker in the cluster
+
+							int qos = lastMqtt.getQoS();
+							printer.log.println("qos="+qos);
+
+							ctx.getMqttToTcpBrokerSyncMap(qos).put(lastMqtt, (TCPPacket) applicationPacket.getParentPacket());
+							ctx.setLastMqttReceived(null);
+
+						} else {
+
+							//												printer.log.println("ArraysUtil.contains(applicationPacketArray, topic)="+ArraysUtil.contains(applicationPacketArray, topic));
+							//												printer.log.println(HexPrinter.toStringHexDump(topic));
+							//												
+							//												printer.log.println("ArraysUtil.contains(applicationPacketArray, message)="+ArraysUtil.contains(applicationPacketArray, message));
+							//												printer.log.println(HexPrinter.toStringHexDump(message));
+
+						}
+
+					}
+
+				}
+
+			}//fim do if(lastMqtt != null)
+			
+		}//não é QMTTT
+
+	}
+
+}

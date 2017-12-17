@@ -1,4 +1,4 @@
-package br.com.davidalain.pcacpparser.main;
+package br.com.davidalain.pcacpparser;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -7,13 +7,30 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import br.com.davidalain.pcacpparser.Context;
-import br.com.davidalain.pcacpparser.Flow;
-import br.com.davidalain.pcacpparser.HexPrinter;
+import br.com.davidalain.pcacpparser.main.Parameters;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import io.pkts.packet.TCPPacket;
 
 public class DataPrinter {
+
+	public final PrintStream log;
+	public final PrintStream resultTime;
+	public final PrintStream resultFlow;
+	public final PrintStream printerAllFlow;
+
+	public DataPrinter() throws FileNotFoundException {
+		
+		/**
+		 * Cria o caminho, caso não exista
+		 */
+		if(!new File(Parameters.OUTPUT_DIR_PATH).exists())
+		new File(Parameters.OUTPUT_FLOW_DIR_PATH).mkdirs();
+		
+		log = new PrintStream(new File(Parameters.LOG_FILEPATH));
+		resultTime = new PrintStream(new File(Parameters.RESULT_TIME_FILEPATH));
+		resultFlow = new PrintStream(new File(Parameters.RESULT_FLOW_FILEPATH));
+		printerAllFlow = new PrintStream(new File(Parameters.ALL_FLOW_CSV_FILEPATH));
+	}
 
 	/**
 	 * Faz a análise da diferença de tempo de:
@@ -28,7 +45,7 @@ public class DataPrinter {
 	 * @param resultTime
 	 * @throws FileNotFoundException
 	 */
-	public static void printQoSTimeAnalysisRTT(Context ctx, final PrintStream log, final PrintStream resultTime) throws FileNotFoundException {
+	public void printQoSTimeAnalysisRTT(Context ctx) throws FileNotFoundException {
 
 		log.println("########################################################################");
 		for(int qos = 0 ; qos < Context.QOS_QUANTITY ; qos++) {
@@ -69,7 +86,7 @@ public class DataPrinter {
 
 	}
 
-	public static void printSeparatedFlows(final Context ctx, final PrintStream resultFlow) throws FileNotFoundException {
+	public void printSeparatedFlows(final Context ctx) throws FileNotFoundException {
 
 		/**
 		 * Tempo inicial e final para ser mostrado em segundos (diferença do tempo real de chegada/saida dos pacotes em relação ao primeiro pacote capturado)
@@ -84,7 +101,7 @@ public class DataPrinter {
 			resultFlow.println("========================================================================");
 
 			final Flow flow = pairFlowThroughtput.getKey();
-			final PrintStream printerCurrentFlow = new PrintStream(new File(Parameters.OUTPUT_FLOW_PATH+Parameters.PREFIX+"_resultFlow_"+flow.toStringForFileName()+".csv"));
+			final PrintStream printerCurrentFlow = new PrintStream(new File(Parameters.resultFlowCsvFilePath(flow)));
 
 			resultFlow.println("Flow: " + flow);
 			resultFlow.println();
@@ -107,7 +124,7 @@ public class DataPrinter {
 
 	}
 
-	public static void printAllFlows(final Context ctx, final PrintStream printerAllFlow) throws FileNotFoundException {
+	public void printAllFlows(final Context ctx) throws FileNotFoundException {
 
 		/**
 		 * Tempo inicial e final para ser mostrado em segundos (diferença do tempo real de chegada/saida dos pacotes em relação ao primeiro pacote capturado)
@@ -131,7 +148,7 @@ public class DataPrinter {
 		for(Entry<Flow, Map<Long/*second*/, Long/*bytes*/>> pairFlowThroughtput : ctx.getMapFlowThroughput().entrySet()) {
 
 			/**
-			 * Para cada fluxo, contabiliza a quantidade de bytes transferida por segundo 
+			 * Para cada fluxo, contabiliza a quantidade de bytes transferida em cada segundo 
 			 */
 			final Flow flow = pairFlowThroughtput.getKey();
 			final Map<Long, Long> mapThroughput = pairFlowThroughtput.getValue();
@@ -169,7 +186,7 @@ public class DataPrinter {
 		}
 	}
 
-	public static void printQoSTimeAnalysisClusterSync(Context ctx, final PrintStream log, final PrintStream resultTime) throws FileNotFoundException {
+	public void printQoSTimeAnalysisClusterSync(Context ctx) throws FileNotFoundException {
 
 		log.println("########################################################################");
 		for(int qos = 0 ; qos < Context.QOS_QUANTITY ; qos++) {
