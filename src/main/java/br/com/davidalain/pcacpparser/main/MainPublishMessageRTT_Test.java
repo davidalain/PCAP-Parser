@@ -38,17 +38,17 @@ public class MainPublishMessageRTT_Test {
 				if (packet.hasProtocol(Protocol.ETHERNET_II)) {
 					printer.log.println("============================================================");
 					printer.log.println("packetNumber: " + ctx.getPackerNumber());
-
+					
 					MACPacket ethernetPacket = (MACPacket) packet.getPacket(Protocol.ETHERNET_II);
 
 					PacketBuffer networkPacketBuffer = packetUtil.processMACPacket(ethernetPacket, ctx, printer);
 
 					if(networkPacketBuffer != null && networkPacketBuffer.getProtocol() == Protocol.IPv4) {
-
+						
 						PacketBuffer transportPacketBuffer = packetUtil.processIPPacket(networkPacketBuffer, ctx, printer);
-
+						
 						if(transportPacketBuffer != null && transportPacketBuffer.getProtocol() == Protocol.TCP) {
-
+							
 							PacketBuffer applicationPacketBuffer = packetUtil.processTCPPacket(transportPacketBuffer, ctx, printer);
 
 							packetUtil.processApplicationPacket(applicationPacketBuffer, ctx, printer);

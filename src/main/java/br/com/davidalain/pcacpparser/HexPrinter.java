@@ -56,7 +56,7 @@ public class HexPrinter {
 	}
 	
 	public static String toStringHexDump(byte[] array, int start, int end) {
-
+		
 		StringBuilder sb = new StringBuilder();
 
 		byte[] line = new byte[16];
@@ -104,6 +104,9 @@ public class HexPrinter {
 	}
 
 	public static String toStringHexDump(byte[] array) {
+		if(array == null)
+			return "null";
+		
 		return toStringHexDump(array, 0, array.length);
 	}
 

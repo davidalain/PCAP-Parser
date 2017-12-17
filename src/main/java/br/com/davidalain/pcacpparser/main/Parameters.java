@@ -9,7 +9,7 @@ public class Parameters {
 	public static final String CLIENT1_IP = "172.17.0.1"; //"192.168.43.1"; //"192.168.25.63"; //"172.17.0.1";
 	public static final String CLIENT2_IP = "172.17.0.1";
 
-	public static final String PCAP_FILEPATH = "trace_pc_rtt_cliente1_172.17.0.1.pcap";
+	public static final String PCAP_FILEPATH = "trace_pc_rtt_cliente1_172.17.0.1_cluster_broker1_172.17.0.3_broker2_172.17.0.2.pcap";
 	
 	public static final String FILENAME = PCAP_FILEPATH.substring(0, PCAP_FILEPATH.indexOf(".pcap"));
 	public static final String OUTPUT_DIR_PATH = "output/";

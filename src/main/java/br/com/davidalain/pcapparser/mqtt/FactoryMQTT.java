@@ -8,13 +8,13 @@ public class FactoryMQTT {
 			return null;
 			
 		switch (MQTTPacket.readMQTTPacketTypeEnum(data)) {
-		case CONNECT: 		return new MQTTPublishMessage(data, arrivalTime);
+		case CONNECT: 		return new MQTTConnectCommand(data, arrivalTime);
 		case CONNACK:		return new MQTTConnectAck(data, arrivalTime);
 		case PUBLISH:		return new MQTTPublishMessage(data, arrivalTime);
-		case PUBACK:		return new MQTTPacket(data, arrivalTime); //FIXME
+		case PUBACK:		return new MQTTPubAck(data, arrivalTime);
 		case PUBREC:		return new MQTTPacket(data, arrivalTime); //FIXME
 		case PUBREL:		return new MQTTPacket(data, arrivalTime); //FIXME
-		case PUBCOMP:		return new MQTTPacket(data, arrivalTime); //FIXME
+		case PUBCOMP:		return new MQTTPubComplete(data, arrivalTime);
 		case SUBSCRIBE:		return new MQTTSubscribeRequest(data, arrivalTime);
 		case SUBACK:		return new MQTTSubscribeAck(data, arrivalTime);
 		case UNSUBSCRIBE:	return new MQTTPacket(data, arrivalTime); //FIXME

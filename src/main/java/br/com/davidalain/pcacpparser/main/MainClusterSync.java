@@ -1,8 +1,6 @@
 package br.com.davidalain.pcacpparser.main;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.ByteBuffer;
 
 import br.com.davidalain.pcacpparser.ArraysUtil;
@@ -186,7 +184,7 @@ public class MainClusterSync {
 												printer.log.println("==== fragmentos formaram mensagem MQTT inválida ===");
 												break;
 											case 0: //mensagem incompleta (ainda tem bytes pra receber)
-												//faz nada
+												printer.log.println("==== mensagem incompleta, ainda falta receber fragmentos ===");
 												break;
 											case 1: //mensagem completa (processar o pacote recebido)
 												ctx.setLastMqttReceived(mqttFragment.buildMQTTPacket());
@@ -195,7 +193,7 @@ public class MainClusterSync {
 												break;
 											}
 
-											printer.log.println(ctx.getMapMqttFragments().get(flow));
+											printer.log.println("Fragmento: " + ctx.getMapMqttFragments().get(flow));
 
 										}
 
