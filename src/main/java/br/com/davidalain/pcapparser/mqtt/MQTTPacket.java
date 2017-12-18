@@ -65,7 +65,7 @@ public /*abstract*/ class MQTTPacket {
 	public int getMessageType() {
 		return ((data[0] & 0xF0) >> 4);
 	}
-	
+
 	public PacketType getMessageTypeEnum() {
 		return readMQTTPacketTypeEnum(data);
 	}
@@ -95,13 +95,13 @@ public /*abstract*/ class MQTTPacket {
 
 		return new MQTTComparator().compare(this, (MQTTPacket) obj) == 0;
 
-//		if(this.data[0] != mqtt.data[0])
-//			return false;
-//
-//		if(this.data[1] != mqtt.data[1])
-//			return false;
-//
-//		return true;
+		//		if(this.data[0] != mqtt.data[0])
+		//			return false;
+		//
+		//		if(this.data[1] != mqtt.data[1])
+		//			return false;
+		//
+		//		return true;
 
 		/**
 		 * Não usar o código abaixo para comparação, pois:
@@ -118,7 +118,7 @@ public /*abstract*/ class MQTTPacket {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		//		result = prime * result + (int) (arrivalTime ^ (arrivalTime >>> 32));
+		result = prime * result + (int) (arrivalTime ^ (arrivalTime >>> 32));
 		result = prime * result + Arrays.hashCode(data);
 		return result;
 	}
@@ -143,9 +143,9 @@ public /*abstract*/ class MQTTPacket {
 
 		if(!hasPacketType(data))
 			return null;
-		
+
 		int type = readMQTTPacketType(data);
-		
+
 		return PacketType.values()[type-1];
 	}
 

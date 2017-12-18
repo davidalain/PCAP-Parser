@@ -3,6 +3,7 @@ package br.com.davidalain.pcacpparser;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -64,15 +65,24 @@ public class DataPrinter {
 			log.println("**************************************************************************");
 
 			resultTime.println("============================= QoS = "+qos+" ===============================");
+			double[] timeMs = new double[ctx.getTimes(qos).size()];
+			double[] timeS = new double[ctx.getTimes(qos).size()];
 			double avg = 0;
 			double median = 0;
 			double max = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.max(ctx.getTimes(qos));
 			double min = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.min(ctx.getTimes(qos));
+			int i = 0;
 			for(long l : ctx.getTimes(qos)) {
 				avg += (double)l;
+				
+				timeMs[i] = ((double)l)/1000.0;
+				timeS[i] = ((double)l)/(1000.0 * 1000.0);
+				i++;
 			}
 			avg /= (double)ctx.getTimes(qos).size();
-			resultTime.println(ctx.getTimes(qos));
+			resultTime.println("us: "+ctx.getTimes(qos));
+			resultTime.println("ms: "+Arrays.toString(timeMs));
+			resultTime.println("s: "+Arrays.toString(timeS));
 			resultTime.println("max(us)="+max+", max(ms)="+(max/1000.0)+", max(s)="+(max/(1000.0*1000.0)));
 			resultTime.println("min(us)="+min+", min(ms)="+(min/1000.0)+", min(s)="+(min/(1000.0*1000.0)));
 			resultTime.println("avg(us)="+avg+", avg(ms)="+(avg/1000.0)+", avg(s)="+(avg/(1000.0*1000.0)));

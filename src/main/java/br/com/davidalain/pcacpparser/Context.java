@@ -120,7 +120,7 @@ public class Context {
 //		this.lastMqttReceived = lastMqttReceived;
 //	}
 
-	public List<MQTTPacket> getLastMqttReceived(int qos) {
+	public List<MQTTPacket> getLastPublishSent(int qos) {
 		return this.lastMqttReceivedQoS[qos];
 	}
 	

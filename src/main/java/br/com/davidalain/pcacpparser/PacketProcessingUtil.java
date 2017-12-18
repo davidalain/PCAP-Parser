@@ -147,30 +147,6 @@ public class PacketProcessingUtil {
 			packetBuffer = new PacketBuffer(tcpPacket.getNextPacket(), tcpPacket.getPayload());
 		}
 
-		//		if (tcpPayload != null) {
-		//
-		//			printer.log.println("TCP segment size: \t\t"+
-		//					"total=" + tcpPacketLen + "\t"+
-		//					"header=" + (tcpPacketLen - applicationPacketLen) + "\t"+
-		//					"payload=" + applicationPacketLen);
-		//			
-		//			printer.log.println("Flow: " + new Flow(tcpPacket).toString());
-		//			printer.log.println();
-		//
-		//			printer.log.println(applicationPacketLen);
-		//			printer.log.println(HexPrinter.toStringHexDump(applicationPacketArray));
-		//			printer.log.println(tcpPayload);
-		//
-		//			if(tcpPacket.getNextPacket() != null) {
-		//				packetBuffer = new PacketBuffer(tcpPacket.getNextPacket(), tcpPacket.getPayload());
-		//			}
-		//
-		//		}
-		//		else {
-		//			
-		//			printer.log.println("TCP payload is null");
-		//		}
-
 		return packetBuffer;
 	}
 
@@ -268,14 +244,11 @@ public class PacketProcessingUtil {
 						break;
 					case 1: //mensagem completa (processar o pacote recebido)
 						mqttPacket = mqttFragment.buildMQTTPacket();
-						ctx.getLastMqttReceived(mqttPacket.getQoS()).add(mqttPacket);
 						ctx.getMapMqttFragments().remove(flow);
-						
+
 						printer.log.println("==== mensagem MQTT remontada ===");
 						break;
 					}
-
-					printer.log.println(ctx.getMapMqttFragments().get(flow));
 
 				}
 
@@ -291,48 +264,55 @@ public class PacketProcessingUtil {
 		 * É um pacote MQTT
 		 */
 		else {
-			
+
 			mqttPacket = new FactoryMQTT().getMQTTPacket(applicationPacketArray, applicationPacket.getArrivalTime());
 		}
-		
+
 		return mqttPacket;
 	}
-	
+
 	public void processRTTPackets(final ApplicationPacket applicationPacket, final MQTTPacket mqttPacket, final Context ctx, final DataPrinter printer) throws IOException {
-		
+
 		/**
 		 * Recebeu um MQTT ou remontou um MQTT
 		 */
 		if(MQTTPacket.isMQTT(mqttPacket.getData())) {
-			
+
 			printer.log.println("==== MQTT: ===");
 			printer.log.println("pktNum="+ ctx.getPackerNumber() + ", É um pacote MQTT");
 
-			printer.log.println("msgType:"+mqttPacket.getMessageType());
+			printer.log.println("msgType:"+mqttPacket.getMessageTypeEnum());
 			printer.log.println("DUPFlag:"+mqttPacket.getDupFlag());
 			printer.log.println("QoS:"+mqttPacket.getQoS());
 			printer.log.println("RetainFlag:"+mqttPacket.getRetainFlag());
 			printer.log.println("msgLen:"+mqttPacket.getMessageLength());
 
 			int qos = mqttPacket.getQoS();
+
 			/**
-			 * Client1 enviando Publish Message para o Broker
+			 * Client1 enviando PUBLISH Message para o Broker
 			 */
 			if(
 					applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP) &&
 					//tcpPacket.getDestinationIP().equals(Parameters.CLIENT1_IP) &&
 					mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value ) 
 			{
-				ctx.getLastMqttReceived(qos).add(mqttPacket);
+				ctx.getLastPublishSent(qos).add(mqttPacket);
 
 				printer.log.println("==== Cliente1 enviando PUBLISH ===");
-			}
 
+				printer.log.println("==== PUBLISH QoS "+qos+" - (out)"+
+						", pktNum: "+ctx.getPackerNumber()+
+						", time(us): "+mqttPacket.getArrivalTime()+
+						", msgId: "+ ((MQTTPublishMessage)mqttPacket).getMessageIdentifier()+
+						", listLen: "+ctx.getLastPublishSent(qos).size()+
+						", mapLen: "+ctx.getMqttTXvsRXMap(qos).size()+
+						"===");
+			}
 			/**
 			 * QoS 0 - Client1 recebendo o PUBLISH do Broker
 			 */
 			else if((applicationPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) &&
-					(qos == 0) &&
 					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value))
 			{
 
@@ -346,52 +326,27 @@ public class PacketProcessingUtil {
 				 * 
 				 * @see equals() em MQTTPacket
 				 */
-				int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
+				int index = ctx.getLastPublishSent(qos).lastIndexOf(mqttPacket);
 				if(index >= 0) {
 
 					printer.log.println("== Cliente recebendo do broker a mensagem de Publish que foi enviada anteriormente ==");
-					
-					MQTTPublishMessage publish =  (MQTTPublishMessage) mqttPacket;
-					printer.log.println("topico:"+publish.getTopic());
-					printer.log.println("message:"+publish.getMessage());
 
-					ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index), mqttPacket);
-				} else {
-					/**
-					 * Erro:
-					 * 		Cliente1 recebendo Publish de uma mensagem que não foi enviada pelo Cliente1.
-					 * 		Isto não faz parte do experimento.
-					 * 		O cliente não deveria estar escrito em outro tópico, e sim apenas naquele em que ele mesmo publica.
-					 */
-				}
+					MQTTPublishMessage publishRx =  (MQTTPublishMessage) mqttPacket;
+					printer.log.println("topic:"+publishRx.getTopic());
+					printer.log.println("message:"+publishRx.getMessage());
 
-			}
-			/**
-			 * QoS 1 - Parte 1 - Client1 recebendo o PUBLISH do Broker
-			 * 
-			 * Guardar o PUBLISH enviado pelo broker para o cliente que contém o mesmo 'Message ID' da mensagem
-			 * de PUBACK que o cliente vai enviar para o broker.
-			 * O tempo será contabilizado através dessa mensagem PUBACK.
-			 */
-			else if((applicationPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) &&
-					(qos == 1) &&
-					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value))
-			{
+					ctx.getMqttTXvsRXMap(qos).put(ctx.getLastPublishSent(qos).remove(index), publishRx);
 
-				printer.log.println("== Cliente recebeu PUBLISH ==");
+					printer.log.println("==== PUBLISH QoS "+qos+" - (in)"+
+							", pktNum: "+ctx.getPackerNumber()+
+							", time(us): "+mqttPacket.getArrivalTime()+
+							", msgId: "+ publishRx.getMessageIdentifier()+
+							", listLen: "+ctx.getLastPublishSent(qos).size()+
+							", mapLen: "+ctx.getMqttTXvsRXMap(qos).size()+
+							"===");
 
-				/**
-				 * @note indexOf() usa equals().
-				 * 
-				 * @see equals() em MQTTPacket
-				 */
-				int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
-				if(index >= 0) {
+					printer.log.println("== QoS "+qos+" - PUBLISH recebido é o mesmo enviado (topico e mensagem são iguais) ==");
 
-					printer.log.println("== QoS 1 - PUBLISH recebido é o mesmo enviado (topico e mensagem são iguais) ==");
-
-					//Guarda a mensagem de publish recebido que contém o 'Message ID' do PUBACK que vai ser enviado para depois trocar no mapa essa PUBLISH pelo PUBACK.
-					ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index)	, mqttPacket);
 				} else {
 					/**
 					 * Erro:
@@ -405,92 +360,96 @@ public class PacketProcessingUtil {
 			/**
 			 * QoS 1 - Parte 2 - Client1 enviando o PUBACK para o broker.
 			 * 
-			 * Guarda o pacote de PUBACK e substitui no lugar do pacote de PUBLISH recebida anteriormente do broker 
+			 * Guarda o pacote de PUBACK e substitui no lugar do pacote de PUBLISH recebida anteriormente do broker.
+			 * 
+			 * PUBACK é um pacote do fluxo do QoS 1, mas sempre tem QoS 0 no campo de cabeçalho
 			 */
 			else if((applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP)) &&
-					(mqttPacket.getQoS() == 0) && //o PUBACK (enviado como confirmação de um PUBLISH com QoS 1) tem QoS 0
 					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBACK.value))
 			{
 
 				printer.log.println(" == QoS 1 - PUBACK enviado ==");
 
-				for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(1).entrySet()) {
+				for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(1 /*qos*/).entrySet()) {
 
-					MQTTPublishMessage publishRx = (MQTTPublishMessage) pair.getKey();
-					MQTTPubAck pubAckRx = (MQTTPubAck) mqttPacket;
+					/**
+					 * Checa apenas os pares cujo valor ainda é um PUBLISH, ou seja, ainda não foi substituido pelo PUBACK
+					 */
+					if(pair.getValue() instanceof MQTTPublishMessage) {
 
-					//Substitui o MQTT PUblish recebido pelo Publish ACK enviado (que contém o tempo final).
-					//O PUBLISH que é a chave do mapa contém o tempo inicial.
-					if(publishRx.getMessageIdentifier() == pubAckRx.getMessageIdentifier()) {
-						ctx.getMqttTXvsRXMap(1).put(pair.getKey(), pubAckRx);
-						break;
+						MQTTPublishMessage publishRx = (MQTTPublishMessage) pair.getValue();
+
+						MQTTPubAck pubAckRx = (MQTTPubAck) mqttPacket;
+
+						//Substitui o MQTT Publish recebido pelo Publish ACK enviado (que contém o tempo final).
+						//O PUBLISH que é a chave do mapa contém o tempo inicial.
+						if(publishRx.getMessageIdentifier() == pubAckRx.getMessageIdentifier()) {
+							ctx.getMqttTXvsRXMap(1 /*qos*/).replace(pair.getKey(), pubAckRx);
+
+							printer.log.println("==== PUBACK QoS 1 - (out)"+
+									", pktNum: "+ctx.getPackerNumber()+
+									", time(us): "+mqttPacket.getArrivalTime()+
+									", msgId: "+ ((MQTTPubAck)mqttPacket).getMessageIdentifier()+
+									", listLen: "+ctx.getLastPublishSent(1).size()+
+									", mapLen: "+ctx.getMqttTXvsRXMap(1).size()+
+									"===");
+
+							break;
+						}
 					}
 
-				}
-
-			}
-			/**
-			 * QoS 2 - Client1 recebendo o PUBLISH do Broker
-			 * 
-			 * Guardar o PUBLISH enviado pelo broker para o cliente que contém o mesmo 'Message ID' da mensagem
-			 * de PUBCOMP que o cliente vai enviar para o broker.
-			 * O tempo será contabilizado através dessa mensagem PUBCOMP.
-			 */
-			else if((applicationPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) &&
-					(qos == 2) &&
-					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value)) 
-			{
-
-				/**
-				 * @note indexOf() usa equals().
-				 * 
-				 * @see equals() em MQTTPacket
-				 */
-				int index = ctx.getLastMqttReceived(qos).indexOf(mqttPacket);
-				if(index >= 0) {
-
-					printer.log.println(" == QoS 2 - Cliente recebendo resposta de PUBLISH ==");
-
-					ctx.getMqttTXvsRXMap(qos).put(ctx.getLastMqttReceived(qos).remove(index), mqttPacket);
-				} else {
-					/**
-					 * Erro:
-					 * 		Cliente1 recebendo Publish de uma mensagem que não foi enviada pelo Cliente1.
-					 * 		Isto não faz parte do experimento.
-					 * 		O cliente não deveria estar escrito em outro tópico, e sim apenas naquele em que ele mesmo publica.
-					 */
 				}
 
 			}
 			/**
 			 * QoS 2 - Parte 2 - Client1 enviando o PUBCOMPLETE para o broker
+			 * 
+			 * Guarda o pacote de PUBCOMPLETE e substitui no lugar do pacote de PUBLISH recebido anteriormente do broker.
+			 * 
+			 * PUBCOMPLETE é um pacote do fluxo do QoS 2, mas sempre tem QoS 0 no campo de cabeçalho.
 			 */
 			else if((applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP)) &&
-					(mqttPacket.getQoS() == 0) && //o PUBCOMP (enviado como confirmação de um PUBLISH com QoS 2) tem QoS 0
 					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBCOMP.value))
 			{
 
 				printer.log.println(" == PUBCOMP enviado ==");
 
-				for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(2).entrySet()) {
+				for(Entry<MQTTPacket,MQTTPacket> pair : ctx.getMqttTXvsRXMap(2 /*qos*/).entrySet()) {
 
-					MQTTPublishMessage publishRx = (MQTTPublishMessage) pair.getKey();
-					MQTTPubComplete pubCompleteRx = (MQTTPubComplete) mqttPacket;
+					/**
+					 * Checa apenas os pares cujo valor ainda é um PUBLISH, ou seja, ainda não foi substituido pelo PUBCOMP
+					 */
+					if(pair.getValue() instanceof MQTTPublishMessage) {
+					
+						MQTTPublishMessage publishRx = (MQTTPublishMessage) pair.getValue();
 
-					//Substitui o MQTT PUblish recebido pelo Publish Complete enviado (que contém o tempo final).
-					//O PUBLISH que é a chave do mapa contém o tempo inicial.
-					if(publishRx.getMessageIdentifier() == pubCompleteRx.getMessageIdentifier()) {
-						ctx.getMqttTXvsRXMap(2).put(pair.getKey(), pubCompleteRx);
-						break;
+						MQTTPubComplete pubCompleteRx = (MQTTPubComplete) mqttPacket;
+
+						//Substitui o MQTT PUblish recebido pelo Publish Complete enviado (que contém o tempo final).
+						//O PUBLISH que é a chave do mapa contém o tempo inicial.
+						if(publishRx.getMessageIdentifier() == pubCompleteRx.getMessageIdentifier()) {
+							ctx.getMqttTXvsRXMap(2 /*qos*/).replace(pair.getKey(), pubCompleteRx);
+
+							printer.log.println("==== PUBCOMP QoS 2 - (out)"+
+									", pktNum: "+ctx.getPackerNumber()+
+									", time(us): "+mqttPacket.getArrivalTime()+
+									", msgId: "+ ((MQTTPubComplete)mqttPacket).getMessageIdentifier()+
+									", listLen: "+ctx.getLastPublishSent(2).size()+
+									", mapLen: "+ctx.getMqttTXvsRXMap(2).size()+
+									"===");
+
+							break;
+						}
+						
 					}
+					
 
 				}
 
 			}
 
-		}
+		}//é MQTT
 
-
-	}
+	}//fim do método
 
 }

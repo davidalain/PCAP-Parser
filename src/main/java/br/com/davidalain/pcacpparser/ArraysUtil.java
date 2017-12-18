@@ -30,4 +30,21 @@ public class ArraysUtil {
 		return false;
 	}
 	
+	/**
+	 * Read nBytes from byteArray and convert them to a int value
+	 * 
+	 * @param byteArray		Array that contains bytes to be converted to int 
+	 * @param offset		Initial index
+	 * @param nBytes		How many bytes represents number that will be converted 
+	 * @return
+	 */
+	public static int toInt(byte[] byteArray, int offset, int nBytes) {
+		int ret = 0;
+		for (int i=offset; i<offset+nBytes && i<byteArray.length; i++) {
+			ret <<= 8;
+			ret |= (int)byteArray[i] & 0xFF;
+		}
+		return ret;
+	}
+	
 }

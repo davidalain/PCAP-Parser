@@ -1,5 +1,7 @@
 package br.com.davidalain.pcapparser.mqtt;
 
+import br.com.davidalain.pcacpparser.ArraysUtil;
+
 public class MQTTPublishMessage extends MQTTPacket{
 
 	public MQTTPublishMessage(byte[] data, long arrivalTime) {
@@ -7,7 +9,7 @@ public class MQTTPublishMessage extends MQTTPacket{
 	}
 
 	public int getTopicLength() {
-		return ((data[2] << 8) | data[3]);
+		return ArraysUtil.toInt(data, 2, 2);
 	}
 
 	public final byte[] getTopicArray() {
@@ -21,8 +23,12 @@ public class MQTTPublishMessage extends MQTTPacket{
 	}
 
 	public final int getMessageIdentifier() {
+		
+		if(getQoS() == 0)
+			return -1;
+		
 		int index = 4 + getTopicLength();
-		return ((data[index] << 8) | data[index+1]);
+		return ArraysUtil.toInt(data, index, 2);
 	}
 
 	public final byte[] getMessageArray() {
@@ -35,26 +41,5 @@ public class MQTTPublishMessage extends MQTTPacket{
 	public final String getMessage() {
 		return new String(getMessageArray());
 	}
-
-//	@Override
-//	public boolean equals(Object obj) {
-//
-//		//Condição que checa a menor mensagem MQTT (apenas dois bytes)
-//		if(!super.equals(obj))
-//			return false;
-//
-//		if(!(obj instanceof MQTTPublishMessage))
-//			return false;
-//		
-//		MQTTPublishMessage mqtt = (MQTTPublishMessage) obj;
-//
-//		if(!this.getTopic().equals(mqtt.getTopic()))
-//			return false;
-//		
-//		if(!this.getMessage().equals(mqtt.getMessage()))
-//			return false;
-//
-//		return true;
-//	}
 
 }

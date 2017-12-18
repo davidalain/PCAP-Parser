@@ -116,7 +116,7 @@ public class MainClusterSync {
 											tcpPacket.getSourceIP().equals(Parameters.CLIENT1_IP) && 
 											tcpPacket.getDestinationIP().equals(Parameters.BROKER1_IP) )
 									{
-										ctx.getLastMqttReceived(mqttPacket.getQoS()).add(mqttPacket);
+										ctx.getLastPublishSent(mqttPacket.getQoS()).add(mqttPacket);
 									}else {
 										printer.log.println("{IP de origem = ("+tcpPacket.getSourceIP()+") != ("+Parameters.CLIENT1_IP+")} ou {IP de destino = ("+tcpPacket.getDestinationIP()+") != ("+Parameters.BROKER1_IP+")}");
 									}
@@ -189,13 +189,11 @@ public class MainClusterSync {
 												break;
 											case 1: //mensagem completa (processar o pacote recebido)
 												MQTTPacket mqtt = mqttFragment.buildMQTTPacket();
-												ctx.getLastMqttReceived(mqtt.getQoS()).add(mqtt);
+												ctx.getLastPublishSent(mqtt.getQoS()).add(mqtt);
 												ctx.getMapMqttFragments().remove(flow);
 												printer.log.println("==== mensagem MQTT remontada ===");
 												break;
 											}
-
-											printer.log.println("Fragmento: " + ctx.getMapMqttFragments().get(flow));
 
 										}
 
@@ -205,7 +203,7 @@ public class MainClusterSync {
 									 * FIXME: Admitindo que foi recebido um pacote MQTT com QoS 0 e este é o único da lista de pacotes de QoS 0.
 									 * TODO: Iterar em todas as listas de pacotes com os diferentes QoS'es
 									 */
-									MQTTPacket lastMqtt = ctx.getLastMqttReceived(0).get(0);
+									MQTTPacket lastMqtt = ctx.getLastPublishSent(0).get(0);
 
 									printer.log.println("lastMqtt="+lastMqtt);
 
@@ -253,7 +251,7 @@ public class MainClusterSync {
 
 													ctx.getMqttToTcpBrokerSyncMap(qos).put(lastMqtt, tcpPacket);
 //													ctx.setLastMqttReceived(null);
-													ctx.getLastMqttReceived(qos).remove(lastMqtt);
+													ctx.getLastPublishSent(qos).remove(lastMqtt);
 
 												} else {
 
