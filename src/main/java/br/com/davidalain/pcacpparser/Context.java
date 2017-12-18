@@ -112,13 +112,13 @@ public class Context {
 		return mqttTXvsRXMap[qosIndex];
 	}
 	
-	public MQTTPacket getLastMqttReceived() {
-		return lastMqttReceived;
-	}
+//	public MQTTPacket getLastMqttReceived() {
+//		return lastMqttReceived;
+//	}
 
-	public void setLastMqttReceived(MQTTPacket lastMqttReceived) {
-		this.lastMqttReceived = lastMqttReceived;
-	}
+//	public void setLastMqttReceived(MQTTPacket lastMqttReceived) {
+//		this.lastMqttReceived = lastMqttReceived;
+//	}
 
 	public List<MQTTPacket> getLastMqttReceived(int qos) {
 		return this.lastMqttReceivedQoS[qos];

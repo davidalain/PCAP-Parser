@@ -114,8 +114,9 @@ public class MainClusterSync {
 									 */
 									if(
 											tcpPacket.getSourceIP().equals(Parameters.CLIENT1_IP) && 
-											tcpPacket.getDestinationIP().equals(Parameters.BROKER1_IP) ) {
-										ctx.setLastMqttReceived(mqttPacket);	
+											tcpPacket.getDestinationIP().equals(Parameters.BROKER1_IP) )
+									{
+										ctx.getLastMqttReceived(mqttPacket.getQoS()).add(mqttPacket);
 									}else {
 										printer.log.println("{IP de origem = ("+tcpPacket.getSourceIP()+") != ("+Parameters.CLIENT1_IP+")} ou {IP de destino = ("+tcpPacket.getDestinationIP()+") != ("+Parameters.BROKER1_IP+")}");
 									}
@@ -187,7 +188,8 @@ public class MainClusterSync {
 												printer.log.println("==== mensagem incompleta, ainda falta receber fragmentos ===");
 												break;
 											case 1: //mensagem completa (processar o pacote recebido)
-												ctx.setLastMqttReceived(mqttFragment.buildMQTTPacket());
+												MQTTPacket mqtt = mqttFragment.buildMQTTPacket();
+												ctx.getLastMqttReceived(mqtt.getQoS()).add(mqtt);
 												ctx.getMapMqttFragments().remove(flow);
 												printer.log.println("==== mensagem MQTT remontada ===");
 												break;
@@ -199,7 +201,11 @@ public class MainClusterSync {
 
 									}
 									
-									MQTTPacket lastMqtt = ctx.getLastMqttReceived();
+									/**
+									 * FIXME: Admitindo que foi recebido um pacote MQTT com QoS 0 e este é o único da lista de pacotes de QoS 0.
+									 * TODO: Iterar em todas as listas de pacotes com os diferentes QoS'es
+									 */
+									MQTTPacket lastMqtt = ctx.getLastMqttReceived(0).get(0);
 
 									printer.log.println("lastMqtt="+lastMqtt);
 
@@ -246,7 +252,8 @@ public class MainClusterSync {
 													printer.log.println("qos="+qos);
 
 													ctx.getMqttToTcpBrokerSyncMap(qos).put(lastMqtt, tcpPacket);
-													ctx.setLastMqttReceived(null);
+//													ctx.setLastMqttReceived(null);
+													ctx.getLastMqttReceived(qos).remove(lastMqtt);
 
 												} else {
 

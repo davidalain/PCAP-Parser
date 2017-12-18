@@ -6,10 +6,12 @@ import br.com.davidalain.pcacpparser.Context;
 import br.com.davidalain.pcacpparser.DataPrinter;
 import br.com.davidalain.pcacpparser.PacketBuffer;
 import br.com.davidalain.pcacpparser.PacketProcessingUtil;
+import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import io.pkts.PacketHandler;
 import io.pkts.Pcap;
 import io.pkts.packet.MACPacket;
 import io.pkts.packet.Packet;
+import io.pkts.packet.impl.ApplicationPacket;
 import io.pkts.protocol.Protocol;
 
 public class MainPublishMessageRTT_Test {
@@ -51,7 +53,12 @@ public class MainPublishMessageRTT_Test {
 							
 							PacketBuffer applicationPacketBuffer = packetUtil.processTCPPacket(transportPacketBuffer, ctx, printer);
 
-							packetUtil.processApplicationPacket(applicationPacketBuffer, ctx, printer);
+							MQTTPacket mqttPacket = packetUtil.processApplicationPacket(applicationPacketBuffer, ctx, printer);
+							
+							if(mqttPacket != null) {
+								
+								packetUtil.processRTTPackets((ApplicationPacket)applicationPacketBuffer.asPacket(), mqttPacket, ctx, printer);
+							}//mqtt
 							
 						}//tcp
 						
@@ -79,6 +86,7 @@ public class MainPublishMessageRTT_Test {
 		printer.printAllFlows(ctx);
 
 		System.out.println("Done!");
+		System.out.println("Veja o arquivo '" + Parameters.LOG_FILEPATH);
 
 	}//fim do main
 
