@@ -1,5 +1,7 @@
 package br.com.davidalain.pcapparser.mqtt;
 
+import br.com.davidalain.pcacpparser.ArraysUtil;
+
 public class MQTTSubscribeRequest extends MQTTPacket {
 
 	public MQTTSubscribeRequest(byte[] data, long arrivalTime) {
@@ -7,11 +9,11 @@ public class MQTTSubscribeRequest extends MQTTPacket {
 	}
 
 	public int getMessageIdentifier() {
-		return ((data[2] << 8)| data[3]);
+		return ArraysUtil.toInt(data, 2, 2);
 	}
 	
 	public int getTopicLength() {
-		return ((data[4] << 8)| data[5]);
+		return ArraysUtil.toInt(data, 4, 2);
 	}
 	
 	public final byte[] getTopicArray() {

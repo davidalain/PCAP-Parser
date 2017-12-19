@@ -1,5 +1,7 @@
 package br.com.davidalain.pcapparser.mqtt;
 
+import br.com.davidalain.pcacpparser.ArraysUtil;
+
 public class MQTTSubscribeAck extends MQTTPacket {
 
 	public MQTTSubscribeAck(byte[] data, long arrivalTime) {
@@ -7,7 +9,7 @@ public class MQTTSubscribeAck extends MQTTPacket {
 	}
 	
 	public int getMessageIdentifier() {
-		return ((data[2] << 8)| data[3]);
+		return ArraysUtil.toInt(data, 2, 2);
 	}
 	
 	public int getGrantedQoS() {

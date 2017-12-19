@@ -168,11 +168,45 @@ public /*abstract*/ class MQTTPacket {
 
 		if(!hasPacketType(data))
 			return false;
+		
+		int qos = getQoS(data);
+		if(qos < 0 || qos > 2)
+			return false;
+		
+		int type = getMessageType(data);
+		if(type == PacketType.PUBACK.value && qos != 0)
+			return false;
+		if(type == PacketType.PUBCOMP.value && qos != 0)
+			return false;
 
-		if(data[1] != (data.length - 2))
+		if(getMessageLength(data) != (data.length - 2))
 			return false;
 
 		return true;
+	}
+	
+	private static int getMessageType(byte[] data) {
+		return ((data[0] & 0xF0) >> 4);
+	}
+
+	private static PacketType getMessageTypeEnum(byte[] data) {
+		return readMQTTPacketTypeEnum(data);
+	}
+
+	private static int getDupFlag(byte[] data) {
+		return ((data[0] & 0x08) == 0) ? 1 : 0;
+	}
+
+	private static int getQoS(byte[] data) {
+		return ((data[0] & 0x06) >> 1);
+	}
+
+	private static int getRetainFlag(byte[] data) {
+		return (data[0] & 0x01);
+	}
+
+	private static int getMessageLength(byte[] data) {
+		return data[1];
 	}
 
 }

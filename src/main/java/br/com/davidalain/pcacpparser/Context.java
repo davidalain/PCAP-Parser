@@ -1,5 +1,6 @@
 package br.com.davidalain.pcacpparser;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,20 +9,21 @@ import java.util.Map;
 import br.com.davidalain.pcapparser.mqtt.MQTTFragment;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import br.com.davidalain.pcapparser.mqtt.MQTTPublishMessage;
+import io.pkts.buffer.Buffer;
 import io.pkts.packet.TCPPacket;
+import io.pkts.packet.impl.ApplicationPacket;
 
 public class Context {
 
 	public static final int QOS_QUANTITY = 3;
 
-	private final Map<MQTTPacket,TCPPacket>[] mqttToTcpBrokerSyncMap;
+	private final Map<MQTTPacket,ApplicationPacket>[] mqttToTcpBrokerSyncMap;
 	private final Map<MQTTPacket,MQTTPacket>[] mqttTXvsRXMap;
 	
 	private List<Long>[] times;
 	private Map<Flow, Map<Long/*second*/, Long/*bytes*/> > mapFlowThroughput;
 
-	private MQTTPacket lastMqttReceived;
-	private List<MQTTPacket>[] lastMqttReceivedQoS;
+	private List<MQTTPublishMessage>[] lastPublishSentToBrokerQoS;
 
 	private int packerNumber;
 	private long startTimeUs; //used to calculate throughput in each second 
@@ -40,25 +42,22 @@ public class Context {
 		this.client1IP = client1ip;
 		this.client2IP = client2ip;
 
-		this.lastMqttReceivedQoS = new List[QOS_QUANTITY];
+		this.lastPublishSentToBrokerQoS = new List[QOS_QUANTITY];
 		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
 		this.mqttTXvsRXMap = new HashMap[QOS_QUANTITY];
-		
 		this.times = new ArrayList[QOS_QUANTITY];
 		
 		for(int i = 0 ; i < QOS_QUANTITY ; i++) {
 			this.mqttToTcpBrokerSyncMap[i] = new HashMap<>();
 			this.mqttTXvsRXMap[i] = new HashMap<>();
 			
-			this.lastMqttReceivedQoS[i] = new ArrayList<>();
+			this.lastPublishSentToBrokerQoS[i] = new ArrayList<>();
 			this.times[i] = new ArrayList<>();
 		}
 
 		this.mapFlowThroughput = new HashMap<>();
 		this.mapMqttFragments = new HashMap<>();
 		
-//		this.lastMqttReceived = null;
-
 		this.packerNumber = 0;
 		this.startTimeUs = 0;
 		this.endTimeUs = 0;
@@ -100,33 +99,21 @@ public class Context {
 		return mapFlowThroughput;
 	}
 
-	public void setMapFlowThroughput(Map<Flow, Map<Long, Long>> mapFlowThroughput) {
-		this.mapFlowThroughput = mapFlowThroughput;
-	}
+//	public void setMapFlowThroughput(Map<Flow, Map<Long, Long>> mapFlowThroughput) {
+//		this.mapFlowThroughput = mapFlowThroughput;
+//	}
 
-	public Map<MQTTPacket, TCPPacket> getMqttToTcpBrokerSyncMap(int qosIndex) {
+	public Map<MQTTPacket, ApplicationPacket> getMqttToTcpBrokerSyncMap(int qosIndex) {
 		return mqttToTcpBrokerSyncMap[qosIndex];
 	}
 	
 	public Map<MQTTPacket, MQTTPacket> getMqttTXvsRXMap(int qosIndex) {
 		return mqttTXvsRXMap[qosIndex];
 	}
-	
-//	public MQTTPacket getLastMqttReceived() {
-//		return lastMqttReceived;
-//	}
 
-//	public void setLastMqttReceived(MQTTPacket lastMqttReceived) {
-//		this.lastMqttReceived = lastMqttReceived;
-//	}
-
-	public List<MQTTPacket> getLastPublishSent(int qos) {
-		return this.lastMqttReceivedQoS[qos];
+	public List<MQTTPublishMessage> getLastPublishSentToBroker(int qosIndex) {
+		return this.lastPublishSentToBrokerQoS[qosIndex];
 	}
-	
-//	public void setLastMqttReceivedQoS(List<MQTTPacket> lastMqttReceived, int qos) {
-//		this.lastMqttReceivedQoS[qos] = lastMqttReceived;
-//	}
 
 	public int getPackerNumber() {
 		return packerNumber;
@@ -139,22 +126,6 @@ public class Context {
 	public final List<Long> getTimes(int qosIndex){
 		return times[qosIndex];
 	}
-
-	//	public long getStartTime() {
-	//		return startTime;
-	//	}
-	//
-	//	public void setStartTime(long startTime) {
-	//		this.startTime = startTime;
-	//	}
-	//	
-	//	public long getEndTime() {
-	//		return endTime;
-	//	}
-	//
-	//	public void setEndTime(long endTime) {
-	//		this.endTime = endTime;
-	//	}
 
 	public long getStartTimeUs() {
 		return startTimeUs;
@@ -180,7 +151,17 @@ public class Context {
 		this.mapMqttFragments = mqttFragments;
 	}
 
-	public void addBytes(Flow flow, long arrivalTimeUs, long bytestoAdd) {
+	public void addBytesToFlow(PacketBuffer transportPacketBuffer) throws IOException {
+
+		TCPPacket tcpPacket = (TCPPacket) transportPacketBuffer.getPacket();
+//		Buffer tcpBuffer = transportPacketBuffer.getPayloadBuffer();
+		
+		int length = tcpPacket.getParentPacket().getParentPacket().getPayload().getArray().length;
+		
+		addBytesToFlow(new Flow(tcpPacket), tcpPacket.getArrivalTime(), length); 
+	}
+	
+	public void addBytesToFlow(Flow flow, long arrivalTimeUs, long bytestoAdd) {
 
 		//Guarda o menor tempo
 		if(this.startTimeUs == 0)

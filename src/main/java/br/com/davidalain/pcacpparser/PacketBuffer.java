@@ -15,11 +15,11 @@ public class PacketBuffer {
 		this.payloadBuffer = payloadBuffer;
 	}
 
-	public Packet asPacket() {
+	public Packet getPacket() {
 		return packet;
 	}
 
-	public Buffer asPayloadBuffer() {
+	public Buffer getPayloadBuffer() {
 		return payloadBuffer;
 	}
 

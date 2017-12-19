@@ -84,7 +84,7 @@ public class MQTTComparator implements Comparator<MQTTPacket>{
 
 	public int comparePublishPublish(MQTTPublishMessage o1, MQTTPublishMessage o2) {
 
-		System.out.println("comparePublishPublish");
+//		System.out.println("comparePublishPublish");
 		
 		int value = 0;
 
@@ -106,7 +106,7 @@ public class MQTTComparator implements Comparator<MQTTPacket>{
 
 	public int comparePublishPubAck(MQTTPublishMessage o1, MQTTPubAck o2) {
 		
-		System.out.println("comparePublishPubAck");
+//		System.out.println("comparePublishPubAck");
 
 		int value = 0;
 
@@ -123,7 +123,7 @@ public class MQTTComparator implements Comparator<MQTTPacket>{
 	
 	public int comparePublishPubComplete(MQTTPublishMessage o1, MQTTPubComplete o2) {
 
-		System.out.println("comparePublishPubComplete");
+//		System.out.println("comparePublishPubComplete");
 		
 		int value = 0;
 

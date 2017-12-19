@@ -2,6 +2,8 @@ package br.com.davidalain.pcapparser.mqtt;
 
 import java.security.InvalidParameterException;
 
+import br.com.davidalain.pcacpparser.ArraysUtil;
+
 public class MQTTPubComplete extends MQTTPacket{
 
 	public MQTTPubComplete(byte[] data, long arrivalTime) {
@@ -12,7 +14,7 @@ public class MQTTPubComplete extends MQTTPacket{
 	}
 
 	public final int getMessageIdentifier() {
-		return ((data[2] << 8) | data[3]);
+		return ArraysUtil.toInt(data, 2, 2);
 	}
 
 //	@Override

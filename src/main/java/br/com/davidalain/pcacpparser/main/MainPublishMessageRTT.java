@@ -26,7 +26,7 @@ public class MainPublishMessageRTT {
 
 		System.out.println("Running...");
 
-		final Pcap pcap = Pcap.openStream(Parameters.PCAP_FILEPATH);
+		final Pcap pcap = Pcap.openStream(Parameters.PCAP_FILE_PATH);
 		final Context ctx = new Context(Parameters.BROKER1_IP, Parameters.BROKER2_IP, Parameters.CLIENT1_IP, Parameters.CLIENT2_IP);
 		final DataPrinter printer = new DataPrinter();
 		final PacketProcessingUtil packetUtil = new PacketProcessingUtil();
@@ -58,8 +58,10 @@ public class MainPublishMessageRTT {
 							
 							if(mqttPacket != null) {
 								
-								packetUtil.processRTTPackets((ApplicationPacket)applicationPacketBuffer.asPacket(), mqttPacket, ctx, printer);
+								packetUtil.processRTTPackets((ApplicationPacket)applicationPacketBuffer.getPacket(), mqttPacket, ctx, printer);
 							}//mqtt
+							
+							ctx.addBytesToFlow(transportPacketBuffer);
 							
 						}//tcp
 						
@@ -76,8 +78,7 @@ public class MainPublishMessageRTT {
 				ctx.getMqttTXvsRXMap(2).isEmpty())
 		{
 			System.err.println("Nenhum pacote MQTT foi endereçado de/para "+Parameters.CLIENT1_IP+".");
-			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Parameters.PCAP_FILEPATH);
-			System.err.println("Ou está acontecendo fragmentação dos segmentos das mensagens MQTT.");
+			System.err.println("É possível que o endereço IP do cliente esteja errado ou não há messagens MQTT no arquivo " + Parameters.PCAP_FILE_PATH);
 
 			System.err.println("Veja o arquivo '" + Parameters.LOG_FILEPATH);
 		}

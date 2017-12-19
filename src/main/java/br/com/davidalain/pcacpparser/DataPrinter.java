@@ -10,7 +10,7 @@ import java.util.Map.Entry;
 
 import br.com.davidalain.pcacpparser.main.Parameters;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
-import io.pkts.packet.TCPPacket;
+import io.pkts.packet.impl.ApplicationPacket;
 
 public class DataPrinter {
 
@@ -201,7 +201,7 @@ public class DataPrinter {
 		log.println("########################################################################");
 		for(int qos = 0 ; qos < Context.QOS_QUANTITY ; qos++) {
 			log.println("******************************* QoS = "+qos+" ****************************");
-			for(Entry<MQTTPacket, TCPPacket> pair : ctx.getMqttToTcpBrokerSyncMap(qos).entrySet()) {
+			for(Entry<MQTTPacket, ApplicationPacket> pair : ctx.getMqttToTcpBrokerSyncMap(qos).entrySet()) {
 				log.println("MQTT");
 				log.println(HexPrinter.toStringHexDump(pair.getKey().getData()));
 				log.println("TCP");
