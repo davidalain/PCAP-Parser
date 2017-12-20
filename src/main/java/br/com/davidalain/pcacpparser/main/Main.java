@@ -17,7 +17,7 @@ public class Main {
 	public static void main(String[] args) throws IOException {
 
 		List<String> list = Arrays.asList(args);
-
+		
 		//At least one
 		if(!list.contains(SYNC) && !list.contains(RTT)) {
 			
@@ -36,31 +36,8 @@ public class Main {
 
 		if(list.contains(SYNC)) {
 
-			String pcapFilePath = null;
-			String brokerIP = null;
-			
-			if(args.length >= 3 && args[2].endsWith(".pcap")) {
-				pcapFilePath = args[2];
-				
-			}else {
-				usage(args);
-				return;
-			}
-			
-			if(args.length >= 5 && PathUtil.isIpAddress(args[4])) {
-				brokerIP = args[4];
-			}else {
-				usage(args);
-				return;
-			}
-			
-			MainClusterSync.run(pcapFilePath, brokerIP);
-			return;
-		}
-		
-		if(list.contains(SYNC)) {
-
 			if(args.length < 4){
+				System.err.println("You must especify all 4 parameters to jar runnable");
 				usage(args);
 				return;
 			}
@@ -71,16 +48,19 @@ public class Main {
 			}
 			
 			if(!args[1].endsWith(".pcap")){
+				System.err.println("You must especify pcap file");
 				usage(args);
 				return;								
 			}
 				
 			if(!args[2].equals(BROKER)){
+				System.err.println("You must especify broker IP");
 				usage(args);
 				return;
 			}
 			
 			if(!PathUtil.isIpAddress(args[3])) {
+				System.err.println("You must especify a valid broker IP");
 				usage(args);
 				return;
 			}
@@ -100,21 +80,25 @@ public class Main {
 			}
 			
 			if(!args[0].equals(RTT)){
+				System.err.println("You must especify all 4 parameters to jar runnable");
 				usage(args);
 				return;				
 			}
 			
 			if(!args[1].endsWith(".pcap")){
+				System.err.println("You must especify pcap file");
 				usage(args);
 				return;								
 			}
 				
 			if(!args[2].equals(CLIENT)){
+				System.err.println("You must especify client IP");
 				usage(args);
 				return;
 			}
 			
 			if(!PathUtil.isIpAddress(args[3])) {
+				System.err.println("You must especify a valid client IP");
 				usage(args);
 				return;
 			}
