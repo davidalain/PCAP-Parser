@@ -1,10 +1,10 @@
 package br.com.davidalain.pcacpparser.main;
 
 import java.io.IOException;
+import java.security.InvalidParameterException;
 
 import br.com.davidalain.pcacpparser.Context;
 import br.com.davidalain.pcacpparser.DataPrinter;
-import br.com.davidalain.pcacpparser.Flow;
 import br.com.davidalain.pcacpparser.PacketBuffer;
 import br.com.davidalain.pcacpparser.PacketProcessingUtil;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
@@ -12,24 +12,22 @@ import io.pkts.PacketHandler;
 import io.pkts.Pcap;
 import io.pkts.packet.MACPacket;
 import io.pkts.packet.Packet;
-import io.pkts.packet.impl.ApplicationPacket;
 import io.pkts.protocol.Protocol;
 
 public class MainClusterSync {
 
-	/**
-	 * TODO:
-	 * 
-	 * @see https://github.com/emqtt/emqttd/wiki/$SYS-Topics
-	 */
+	public static void run(final String pcapFilePath, final String brokerIP) throws IOException {
 
-	public static void main(String[] args) throws IOException {
-
+		if(pcapFilePath == null)
+			throw new InvalidParameterException("pcap file must be specified");
+		if(brokerIP == null)
+			throw new InvalidParameterException("broker IP must be specified");
+		
 		System.out.println("Running...");
 
-		final Pcap pcap = Pcap.openStream(Parameters.PCAP_FILE_PATH);
-		final Context ctx = new Context(Parameters.BROKER1_IP, Parameters.BROKER2_IP, Parameters.CLIENT1_IP, Parameters.CLIENT2_IP);
-		final DataPrinter printer = new DataPrinter();
+		final Pcap pcap = Pcap.openStream(pcapFilePath);
+		final Context ctx = new Context(brokerIP, null);
+		final DataPrinter printer = new DataPrinter(pcapFilePath);
 		final PacketProcessingUtil packetUtil = new PacketProcessingUtil();
 
 		pcap.loop(new PacketHandler() {
@@ -58,7 +56,7 @@ public class MainClusterSync {
 							MQTTPacket ReceivedMqttPacket = packetUtil.processApplicationPacket(applicationPacketBuffer, ctx, printer);
 
 							packetUtil.processMQTTandSyncPackets(applicationPacketBuffer, ReceivedMqttPacket, ctx, printer);
-							
+
 							ctx.addBytesToFlow(transportPacketBuffer);
 
 						}//tcp
@@ -72,14 +70,14 @@ public class MainClusterSync {
 
 		});
 
-		if(ctx.getMqttToTcpBrokerSyncMap(0).isEmpty() &&
-				ctx.getMqttToTcpBrokerSyncMap(1).isEmpty() &&
-				ctx.getMqttToTcpBrokerSyncMap(2).isEmpty())
+		if(ctx.getMqttToTcpBrokerSyncMap(0).isEmpty() &&		//qos 0
+				ctx.getMqttToTcpBrokerSyncMap(1).isEmpty() &&	//qos 1
+				ctx.getMqttToTcpBrokerSyncMap(2).isEmpty())		//qos 2
 		{
-			System.err.println("Nenhum pacote MQTT associado com pacote SYNC no broker "+Parameters.BROKER1_IP+".");
-			System.err.println("É possível que o endereço IP do broker esteja errado ou não há messagens MQTT e/ou SYNC no arquivo " + Parameters.PCAP_FILE_PATH);
-
-			System.err.println("Veja o arquivo '" + Parameters.LOG_FILEPATH);
+			System.err.println("No one MQTT Publish packet was sincronized from broker with IP "+brokerIP+" another broker");
+			System.err.println("It is possible that IP broker is wrong or "+pcapFilePath+" does not contains MQTT Publish and syncronization packet of that Publish");
+			
+			System.err.println("See '" + PathUtil.logFilePathTXT(pcapFilePath)+"' file for detailed info.");
 		}
 
 		printer.printQoSTimeAnalysisClusterSync(ctx);
@@ -87,7 +85,7 @@ public class MainClusterSync {
 		printer.printAllFlows(ctx);
 
 		System.out.println("Done!");
-		System.out.println("Veja o arquivo '" + Parameters.LOG_FILEPATH);
+		System.out.println("See '" + PathUtil.logFilePathTXT(pcapFilePath)+"' file for detailed info.");
 
 	}//fim do main
 

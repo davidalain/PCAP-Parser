@@ -29,18 +29,14 @@ public class Context {
 	private long startTimeUs; //used to calculate throughput in each second 
 	private long endTimeUs;	//used to calculate throughput in each second
 
-	private String broker1IP;
-	private String broker2IP;
-	private String client1IP;
-	private String client2IP;
+	private String brokerIP;
+	private String clientIP;
 	
 	private Map<Flow,MQTTFragment> mapMqttFragments; 
 	
-	public Context(String broker1ip, String broker2ip, String client1ip, String client2ip) {
-		this.broker1IP = broker1ip;
-		this.broker2IP = broker2ip;
-		this.client1IP = client1ip;
-		this.client2IP = client2ip;
+	public Context(final String brokerIP, String clientIP) {
+		this.brokerIP = brokerIP;
+		this.clientIP = clientIP;
 
 		this.lastPublishSentToBrokerQoS = new List[QOS_QUANTITY];
 		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
@@ -63,36 +59,20 @@ public class Context {
 		this.endTimeUs = 0;
 	}
 	
-	public String getBroker1IP() {
-		return broker1IP;
+	public String getBrokerIP() {
+		return brokerIP;
 	}
 
-	public void setBroker1IP(String broker1ip) {
-		broker1IP = broker1ip;
+	public void setBrokerIP(String broker1ip) {
+		brokerIP = broker1ip;
 	}
 
-	public String getBroker2IP() {
-		return broker2IP;
+	public String getClientIP() {
+		return clientIP;
 	}
 
-	public void setBroker2IP(String broker2ip) {
-		broker2IP = broker2ip;
-	}
-
-	public String getClient1IP() {
-		return client1IP;
-	}
-
-	public void setClient1IP(String client1ip) {
-		client1IP = client1ip;
-	}
-
-	public String getClient2IP() {
-		return client2IP;
-	}
-
-	public void setClient2IP(String client2ip) {
-		client2IP = client2ip;
+	public void setClientIP(String client1ip) {
+		clientIP = client1ip;
 	}
 
 	public Map<Flow, Map<Long, Long>> getMapFlowThroughput() {

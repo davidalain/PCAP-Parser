@@ -294,7 +294,7 @@ public class PacketProcessingUtil {
 			 * Client1 enviando PUBLISH Message para o Broker
 			 */
 			if(
-					applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP) &&
+					applicationPacket.getSourceIP().equals(ctx.getClientIP()) &&
 					//tcpPacket.getDestinationIP().equals(Parameters.CLIENT1_IP) &&
 					mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value ) 
 			{
@@ -313,7 +313,7 @@ public class PacketProcessingUtil {
 			/**
 			 * QoS 0 - Client1 recebendo o PUBLISH do Broker
 			 */
-			else if((applicationPacket.getDestinationIP().equals(Parameters.CLIENT1_IP)) &&
+			else if((applicationPacket.getDestinationIP().equals(ctx.getClientIP())) &&
 					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value))
 			{
 
@@ -365,7 +365,7 @@ public class PacketProcessingUtil {
 			 * 
 			 * PUBACK é um pacote do fluxo do QoS 1, mas sempre tem QoS 0 no campo de cabeçalho
 			 */
-			else if((applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP)) &&
+			else if((applicationPacket.getSourceIP().equals(ctx.getClientIP())) &&
 					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBACK.value))
 			{
 
@@ -409,7 +409,7 @@ public class PacketProcessingUtil {
 			 * 
 			 * PUBCOMPLETE é um pacote do fluxo do QoS 2, mas sempre tem QoS 0 no campo de cabeçalho.
 			 */
-			else if((applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP)) &&
+			else if((applicationPacket.getSourceIP().equals(ctx.getClientIP())) &&
 					(mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBCOMP.value))
 			{
 
@@ -488,7 +488,7 @@ public class PacketProcessingUtil {
 			 */
 			if(
 					//					applicationPacket.getSourceIP().equals(Parameters.CLIENT1_IP) && 
-					applicationPacket.getDestinationIP().equals(Parameters.BROKER1_IP) &&
+					applicationPacket.getDestinationIP().equals(ctx.getBrokerIP()) &&
 					mqttPacket.getMessageType() == MQTTPacket.PacketType.PUBLISH.value)
 			{
 				ctx.getLastPublishSentToBroker(mqttPacket.getQoS()).add((MQTTPublishMessage)mqttPacket);
@@ -549,7 +549,7 @@ public class PacketProcessingUtil {
 							/**
 							 * Broker1 enviando mensagem de sync para Broker2
 							 */
-							if(applicationPacket.getSourceIP().equals(Parameters.BROKER1_IP) && applicationPacket.getDestinationIP().equals(Parameters.BROKER2_IP)) {
+							if(applicationPacket.getSourceIP().equals(ctx.getBrokerIP()) /*&& applicationPacket.getDestinationIP().equals(Parameters.BROKER2_IP)*/) {
 
 								//FIXME:
 								//Note: this is a not safe check, because topic name and message can be equals each other (same content) or shorter than necessary to guarantee correct working

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import br.com.davidalain.pcacpparser.main.Parameters;
+import br.com.davidalain.pcacpparser.main.PathUtil;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import io.pkts.packet.impl.ApplicationPacket;
 
@@ -18,19 +19,23 @@ public class DataPrinter {
 	public final PrintStream resultTime;
 	public final PrintStream resultFlow;
 	public final PrintStream printerAllFlow;
+	
+	private final String pcapFilePath;
 
-	public DataPrinter() throws FileNotFoundException {
+	public DataPrinter(String pcapFilePath) throws FileNotFoundException {
 		
 		/**
 		 * Cria o caminho, caso não exista
 		 */
-		if(!new File(Parameters.OUTPUT_DIR_PATH).exists())
+		if(!new File(Parameters.OUTPUT_FLOW_DIR_PATH).exists())
 		new File(Parameters.OUTPUT_FLOW_DIR_PATH).mkdirs();
 		
-		log = new PrintStream(new File(Parameters.LOG_FILEPATH));
-		resultTime = new PrintStream(new File(Parameters.RESULT_TIME_FILEPATH));
-		resultFlow = new PrintStream(new File(Parameters.RESULT_FLOW_FILEPATH));
-		printerAllFlow = new PrintStream(new File(Parameters.ALL_FLOW_CSV_FILEPATH));
+		this.pcapFilePath = pcapFilePath;
+		
+		log = new PrintStream(new File(PathUtil.logFilePathTXT(pcapFilePath)));
+		resultTime = new PrintStream(new File(PathUtil.resultTimeFilePathTXT(pcapFilePath)));
+		resultFlow = new PrintStream(new File(PathUtil.resultFlowFilePathTXT(pcapFilePath)));
+		printerAllFlow = new PrintStream(new File(PathUtil.allFlowsFilePathCSV(pcapFilePath)));
 	}
 
 	/**
@@ -111,7 +116,7 @@ public class DataPrinter {
 			resultFlow.println("========================================================================");
 
 			final Flow flow = pairFlowThroughtput.getKey();
-			final PrintStream printerCurrentFlow = new PrintStream(new File(Parameters.resultFlowCsvFilePath(flow)));
+			final PrintStream printerCurrentFlow = new PrintStream(new File(PathUtil.resultFlowCsvFilePath(pcapFilePath,flow)));
 
 			resultFlow.println("Flow: " + flow);
 			resultFlow.println();
