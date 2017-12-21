@@ -85,7 +85,7 @@ public class MainPublishMessageRTT {
 		}
 
 		printer.printQoSTimeAnalysisRTT(ctx);
-		printer.printSeparatedFlows(ctx);
+//		printer.printSeparatedFlows(ctx);
 		printer.printAllFlows(ctx);
 		
 		System.out.println("Done!");

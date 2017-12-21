@@ -81,7 +81,7 @@ public class MainClusterSync {
 		}
 
 		printer.printQoSTimeAnalysisClusterSync(ctx);
-		printer.printSeparatedFlows(ctx);
+//		printer.printSeparatedFlows(ctx);
 		printer.printAllFlows(ctx);
 
 		System.out.println("Done!");

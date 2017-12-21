@@ -1,6 +1,5 @@
 package br.com.davidalain.pcacpparser.main;
 
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import br.com.davidalain.pcacpparser.Flow;
@@ -18,23 +17,23 @@ public class PathUtil {
 	}
 
 	public static final String resultFlowCsvFilePath(final String pcapFilePath, final Flow flow) {
-		return Parameters.OUTPUT_FLOW_DIR_PATH+getFileNameOnly(pcapFilePath)+"_resultFlow_"+flow.toStringForFileName()+".csv";
+		return Parameters.OUTPUT_DIR_PATH+getFileNameOnly(pcapFilePath)+"_resultFlow_"+flow.toStringForFileName()+".csv";
 	}
 
 	public static final String logFilePathTXT(final String pcapFilePath) {
-		return Parameters.OUTPUT_FLOW_DIR_PATH+getFileNameOnly(pcapFilePath)+"_log.txt";
+		return Parameters.OUTPUT_DIR_PATH+getFileNameOnly(pcapFilePath)+"_log.txt";
 	}
 
-	public static final String resultTimeFilePathTXT(final String pcapFilePath) {
-		return Parameters.OUTPUT_FLOW_DIR_PATH+getFileNameOnly(pcapFilePath)+"_resultTime.txt";
+	public static final String resultTimeStatsFilePathCSV(final String pcapFilePath) {
+		return Parameters.OUTPUT_DIR_PATH+getFileNameOnly(pcapFilePath)+"_resultTimeStats.csv";
 	}
 
-	public static final String resultFlowFilePathTXT(final String pcapFilePath) {
-		return Parameters.OUTPUT_FLOW_DIR_PATH+getFileNameOnly(pcapFilePath)+"_resultFlow.txt";
+	public static final String resultTimeValuesFilePathCSV(final String pcapFilePath) {
+		return Parameters.OUTPUT_DIR_PATH+getFileNameOnly(pcapFilePath)+"_resultTimeValues.csv";
 	}
 
 	public static final String allFlowsFilePathCSV(final String pcapFilePath) {
-		return Parameters.OUTPUT_FLOW_DIR_PATH+getFileNameOnly(pcapFilePath)+"_allFlows.csv";
+		return Parameters.OUTPUT_DIR_PATH+getFileNameOnly(pcapFilePath)+"_allFlows.csv";
 	}
 
 	/**

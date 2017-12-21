@@ -9,7 +9,6 @@ import java.util.Map;
 import br.com.davidalain.pcapparser.mqtt.MQTTFragment;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import br.com.davidalain.pcapparser.mqtt.MQTTPublishMessage;
-import io.pkts.buffer.Buffer;
 import io.pkts.packet.TCPPacket;
 import io.pkts.packet.impl.ApplicationPacket;
 
