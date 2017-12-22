@@ -57,9 +57,11 @@ public class HexPrinter {
 	
 	public static String toStringHexDump(byte[] array, int start, int end) {
 		
-		StringBuilder sb = new StringBuilder();
-
-		byte[] line = new byte[16];
+		if(array == null)
+			return "null";
+		
+		final StringBuilder sb = new StringBuilder();
+		final byte[] line = new byte[16];
 
 		int stop = Math.min(array.length, end);
 		

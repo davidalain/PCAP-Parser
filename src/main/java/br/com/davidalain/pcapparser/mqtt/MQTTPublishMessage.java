@@ -1,11 +1,17 @@
 package br.com.davidalain.pcapparser.mqtt;
 
+import java.security.InvalidParameterException;
+
+import br.com.davidalain.pcacpparser.HexPrinter;
 import br.com.davidalain.pcacpparser.Util;
 
 public class MQTTPublishMessage extends MQTTPacket{
 
 	public MQTTPublishMessage(byte[] data, long arrivalTime) {
 		super(data, arrivalTime);
+		
+		if(data.length < (1 + 1 + 2 + 1 + 1))//headerFlags + msgLen + topicLen + topic(MinSize) + message(MinSize) 
+			throw new InvalidParameterException("PUBLISH length is invalid, len="+data.length); 
 	}
 
 	public int getTopicLength() {

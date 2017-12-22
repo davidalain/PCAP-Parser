@@ -53,9 +53,9 @@ public class MainClusterSync {
 
 							PacketBuffer applicationPacketBuffer = packetUtil.processTCPPacket(transportPacketBuffer, ctx, printer);
 
-							MQTTPacket ReceivedMqttPacket = packetUtil.processApplicationPacket(applicationPacketBuffer, ctx, printer);
+							MQTTPacket receivedMqttPacket = packetUtil.processApplicationPacket(applicationPacketBuffer, ctx, printer);
 
-							packetUtil.processMQTTandSyncPackets(applicationPacketBuffer, ReceivedMqttPacket, ctx, printer);
+							packetUtil.processMQTTandSyncPackets(applicationPacketBuffer, receivedMqttPacket, ctx, printer);
 
 							ctx.addBytesToFlow(transportPacketBuffer);
 

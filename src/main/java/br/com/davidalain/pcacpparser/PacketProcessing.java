@@ -179,22 +179,22 @@ public class PacketProcessing {
 		MQTTPacket mqttPacket = null;
 
 		/**
-		 * TCP payload não é MQTT ou é um fragmento de um MQTT.
+		 * Pacotes com menos de Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD bytes são os possíveis fragmentos
 		 */
-		if(!MQTTPacket.isMQTT(applicationPacketArray)) {
+		if(applicationPacketLen < Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD) {
 
-			printer.log.println("==== TCP payload (application packet) não é um MQTT completo: ===");
+			printer.log.println("==== MQTT fragment: ===");
+			MQTTFragment mqttFragment = ctx.getMapMqttFragments().get(flow);
 
-			/**
-			 * Pacotes com menos de Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD bytes são os possíveis fragmentos
-			 */
-			if(applicationPacketLen < Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD) {
+			/** Ainda não tinha recebido pedaços de uma mensagem MQTT neste fluxo **/
+			if(mqttFragment == null) {
 
-				printer.log.println("==== MQTT fragment: ===");
-				MQTTFragment mqttFragment = ctx.getMapMqttFragments().get(flow);
+				/**
+				 * TCP payload não é MQTT ou é um fragmento de um MQTT.
+				 */
+				if(!MQTTPacket.isMQTT(applicationPacketArray)) {
 
-				/** Ainda não tinha recebido pedaços de uma mensagem MQTT neste fluxo **/
-				if(mqttFragment == null) {
+					printer.log.println("==== TCP payload (application packet) não é um MQTT completo: ===");
 
 					/** Verifica se é um possível pedaço de MQTT **/
 					if(MQTTPacket.hasPacketType(applicationPacketArray)) {
@@ -218,55 +218,55 @@ public class PacketProcessing {
 						//Como não é MQTT e é pequeno demais pra uma mensagem sync então nada faz!
 						printer.log.println("==== não tem formato de MQTT ou é pequeno demais ===");
 					}
+
 				}
-				/** Está recebendo pedaços de uma mensagem MQTT neste fluxo, então armazena os bytes recebidos **/
+				/**
+				 * É um pacote MQTT
+				 */
 				else {
 
-					printer.log.println("==== outro fragmento ("+flow+")===");
-
-					System.arraycopy(applicationPacketArray, 0,
-							mqttFragment.getPartialMessageBuffer(), mqttFragment.getPartialMessageLen(), applicationPacketLen);
-
-					mqttFragment.addPartialMessageLen(applicationPacketLen);
-
-					printer.log.println("fragmento recebido:");
-					printer.log.println(HexPrinter.toStringHexDump(applicationPacketArray));
-
-					printer.log.println("fragmento parcial:");
-					printer.log.println(HexPrinter.toStringHexDump(mqttFragment.getPartialMessageBuffer(), 0, mqttFragment.getPartialMessageLen()));
-
-					switch (mqttFragment.check()) {
-					case -1: //mensagem inválida
-						ctx.getMapMqttFragments().remove(flow);
-						printer.log.println("==== fragmentos formaram mensagem MQTT inválida ===");
-						break;
-					case 0: //mensagem incompleta (ainda tem bytes pra receber)
-						printer.log.println("==== mensagem incompleta, ainda falta receber fragmentos ===");
-						break;
-					case 1: //mensagem completa (processar o pacote recebido)
-						mqttPacket = mqttFragment.buildMQTTPacket();
-						ctx.getMapMqttFragments().remove(flow);
-
-						printer.log.println("==== mensagem MQTT remontada ===");
-						break;
-					}
-
+					mqttPacket = new FactoryMQTT().getMQTTPacket(applicationPacketArray, applicationPacket.getArrivalTime());
 				}
-
 			}
-			/** (applicationPacketLen >= Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD) **/
+			/** Está recebendo pedaços de uma mensagem MQTT neste fluxo, então armazena os bytes recebidos **/
 			else {
 
-				printer.log.println("==== Não é um fragmento MQTT (applicationPacketLen >= Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD=("+Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD+")) ===");
+				printer.log.println("==== outro fragmento ("+flow+")===");
+
+				System.arraycopy(applicationPacketArray, 0,
+						mqttFragment.getPartialMessageBuffer(), mqttFragment.getPartialMessageLen(), applicationPacketLen);
+
+				mqttFragment.addPartialMessageLen(applicationPacketLen);
+
+				printer.log.println("fragmento recebido:");
+				printer.log.println(HexPrinter.toStringHexDump(applicationPacketArray));
+
+				printer.log.println("fragmento parcial:");
+				printer.log.println(HexPrinter.toStringHexDump(mqttFragment.getPartialMessageBuffer(), 0, mqttFragment.getPartialMessageLen()));
+
+				switch (mqttFragment.check()) {
+				case -1: //mensagem inválida
+					ctx.getMapMqttFragments().remove(flow);
+					printer.log.println("==== fragmentos formaram mensagem MQTT inválida ===");
+					break;
+				case 0: //mensagem incompleta (ainda tem bytes pra receber)
+					printer.log.println("==== mensagem incompleta, ainda falta receber fragmentos ===");
+					break;
+				case 1: //mensagem completa (processar o pacote recebido)
+					mqttPacket = mqttFragment.buildMQTTPacket();
+					ctx.getMapMqttFragments().remove(flow);
+
+					printer.log.println("==== mensagem MQTT remontada ===");
+					break;
+				}
+
 			}
 
 		}
-		/**
-		 * É um pacote MQTT
-		 */
+		/** (applicationPacketLen >= Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD) **/
 		else {
 
-			mqttPacket = new FactoryMQTT().getMQTTPacket(applicationPacketArray, applicationPacket.getArrivalTime());
+			printer.log.println("==== Não é um fragmento MQTT (applicationPacketLen >= Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD=("+Parameters.MQTT_FRAGMENT_BYTES_THRESHOLD+")) ===");
 		}
 
 		return mqttPacket;
