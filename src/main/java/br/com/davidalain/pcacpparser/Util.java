@@ -1,6 +1,10 @@
 package br.com.davidalain.pcacpparser;
 
-public class ArraysUtil {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Util {
 
 	/**
 	 * Checks if 'sub' is inside of 'array'
@@ -45,6 +49,29 @@ public class ArraysUtil {
 			ret |= (int)byteArray[i] & 0xFF;
 		}
 		return ret;
+	}
+	
+	public static double max(List<Long> list) {
+		return (double)(list.size() == 0 ? Double.NaN : Collections.max(list));
+	}
+	
+	public static double min(List<Long> list) {
+		return (double)(list.size() == 0 ? Double.NaN : Collections.min(list));
+	}
+	
+	public static double avg(List<Long> list) {
+		double avg = 0;
+		for(long l : list) {
+			avg += (double)l;
+		}
+		avg /= (double)list.size();
+		return avg;
+	}
+	
+	public static double median(List<Long> list) {
+		List<Long> list2 = new ArrayList<>(list);
+		Collections.sort(list2);
+		return (double)(list2.size() == 0 ? Double.NaN : list2.get(list2.size()/2));
 	}
 	
 }

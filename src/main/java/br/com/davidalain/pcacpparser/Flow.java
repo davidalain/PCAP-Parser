@@ -19,12 +19,12 @@ public class Flow {
 		this.dstPort = destPort;
 	}
 	
-	private Flow(final PacketProcessingUtil util, final Packet packet) throws IOException {
+	private Flow(final PacketProcessing util, final Packet packet) throws IOException {
 		this(util.getSourceIP(packet), util.getSourcePort(packet), util.getDestinationIP(packet), util.getDestinationPort(packet));
 	}
 	
 	public Flow(Packet packet) throws IOException {
-		this(new PacketProcessingUtil(), packet);
+		this(new PacketProcessing(), packet);
 	}
 	
 //	public Flow(Packet packet) throws IOException {

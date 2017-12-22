@@ -19,7 +19,7 @@ public class Context {
 	private final Map<MQTTPacket,ApplicationPacket>[] mqttToTcpBrokerSyncMap;
 	private final Map<MQTTPacket,MQTTPacket>[] mqttTXvsRXMap;
 	
-	private List<Long>[] times;
+	private List<Long>[] times_us;
 	private Map<Flow, Map<Long/*second*/, Long/*bytes*/> > mapFlowThroughput;
 
 	private List<MQTTPublishMessage>[] lastPublishSentToBrokerQoS;
@@ -40,14 +40,14 @@ public class Context {
 		this.lastPublishSentToBrokerQoS = new List[QOS_QUANTITY];
 		this.mqttToTcpBrokerSyncMap = new HashMap[QOS_QUANTITY];
 		this.mqttTXvsRXMap = new HashMap[QOS_QUANTITY];
-		this.times = new ArrayList[QOS_QUANTITY];
+		this.times_us = new ArrayList[QOS_QUANTITY];
 		
 		for(int i = 0 ; i < QOS_QUANTITY ; i++) {
 			this.mqttToTcpBrokerSyncMap[i] = new HashMap<>();
 			this.mqttTXvsRXMap[i] = new HashMap<>();
 			
 			this.lastPublishSentToBrokerQoS[i] = new ArrayList<>();
-			this.times[i] = new ArrayList<>();
+			this.times_us[i] = new ArrayList<>();
 		}
 
 		this.mapFlowThroughput = new HashMap<>();
@@ -102,8 +102,8 @@ public class Context {
 		this.packerNumber++;
 	}
 
-	public final List<Long> getTimes(int qosIndex){
-		return times[qosIndex];
+	public final List<Long> getTimesUs(int qosIndex){
+		return times_us[qosIndex];
 	}
 
 	public long getStartTimeUs() {

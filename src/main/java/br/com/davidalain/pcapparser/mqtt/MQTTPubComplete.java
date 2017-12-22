@@ -2,7 +2,7 @@ package br.com.davidalain.pcapparser.mqtt;
 
 import java.security.InvalidParameterException;
 
-import br.com.davidalain.pcacpparser.ArraysUtil;
+import br.com.davidalain.pcacpparser.Util;
 
 public class MQTTPubComplete extends MQTTPacket{
 
@@ -14,7 +14,7 @@ public class MQTTPubComplete extends MQTTPacket{
 	}
 
 	public final int getMessageIdentifier() {
-		return ArraysUtil.toInt(data, 2, 2);
+		return Util.toInt(data, 2, 2);
 	}
 
 //	@Override

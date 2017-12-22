@@ -1,6 +1,6 @@
 package br.com.davidalain.pcapparser.mqtt;
 
-import br.com.davidalain.pcacpparser.ArraysUtil;
+import br.com.davidalain.pcacpparser.Util;
 
 public class MQTTConnectCommand extends MQTTPacket {
 
@@ -9,7 +9,7 @@ public class MQTTConnectCommand extends MQTTPacket {
 	}
 	
 	public int getProtocolNameLength() {
-		return ArraysUtil.toInt(data, 2, 2);
+		return Util.toInt(data, 2, 2);
 	}
 	
 	public final byte[] getProtocolNameArray() {
@@ -34,12 +34,12 @@ public class MQTTConnectCommand extends MQTTPacket {
 	
 	public int getKeepAlive() {
 		int index = 2 + 2 + getProtocolNameLength() + 1 + 2;
-		return ArraysUtil.toInt(data, index, 2);
+		return Util.toInt(data, index, 2);
 	}
 	
 	public int getClientIdLength() {
 		int index = 2 + 2 + getProtocolNameLength() + 1 + 2 + 2;
-		return ArraysUtil.toInt(data, index, 2);
+		return Util.toInt(data, index, 2);
 	}
 	
 	public byte[] getClientIdArray() {

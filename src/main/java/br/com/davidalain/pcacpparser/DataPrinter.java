@@ -129,40 +129,33 @@ public class DataPrinter {
 				long diffTime = (pair.getValue().getArrivalTime() - pair.getKey().getArrivalTime());
 				log.println("difftime(us) = " + diffTime);
 
-				ctx.getTimes(qos).add(diffTime);
+				ctx.getTimesUs(qos).add(diffTime);
 			}
 			log.println("**************************************************************************");
 
-			double[] timeMs = new double[ctx.getTimes(qos).size()];
-			double[] timeS = new double[ctx.getTimes(qos).size()];
-			double avg = 0;
-			double median = 0;
-			double max = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.max(ctx.getTimes(qos));
-			double min = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.min(ctx.getTimes(qos));
-			int i = 0;
-			for(long l : ctx.getTimes(qos)) {
-				avg += (double)l;
-
-				timeMs[i] = ((double)l)/1000.0;
-				timeS[i] = ((double)l)/(1000.0 * 1000.0);
-				i++;
-			}
-			avg /= (double)ctx.getTimes(qos).size();
-			Collections.sort(ctx.getTimes(qos));
-			median = ctx.getTimes(qos).size() == 0 ? Double.NaN : ctx.getTimes(qos).get(ctx.getTimes(qos).size()/2);
+			/**
+			 * Imprime no arquivo resultTimeStats.csv as estatísticas de tempo mensuradas
+			 */
+			double avg_us = Util.avg(ctx.getTimesUs(qos));
+			double median_us = Util.median(ctx.getTimesUs(qos));
+			double max_us = Util.max(ctx.getTimesUs(qos));
+			double min_us = Util.min(ctx.getTimesUs(qos));
 			
-			resultTimeStats.println("QoS "+qos+"," + max + "," + min + "," + avg + "," + median);
+			resultTimeStats.println("QoS "+qos+"," + ((double)max_us)/1000.0 + "," + ((double)min_us)/1000.0 + "," + ((double)avg_us)/1000.0+ "," + ((double)median_us)/1000.0);
 
 		}
 		
-		int len = Math.max(ctx.getTimes(0).size(), Math.max(ctx.getTimes(1).size(), ctx.getTimes(2).size()));
+		/**
+		 * Imprime no arquivo resultTimeValues.csv todos os tempos mensurados, cada QoS em uma coluna
+		 */
+		int len = Math.max(ctx.getTimesUs(0).size(), Math.max(ctx.getTimesUs(1).size(), ctx.getTimesUs(2).size()));
 		
 		resultTimeValues.println("QoS 0, QoS 1, QoS 2");
 		for(int i = 0 ; i < len ; i++) {
 			
-			String qos0Str = (i < ctx.getTimes(0).size()) ? ""+(ctx.getTimes(0).get(i)/1000.0) : "";
-			String qos1Str = (i < ctx.getTimes(1).size()) ? ""+(ctx.getTimes(1).get(i)/1000.0) : "";
-			String qos2Str = (i < ctx.getTimes(2).size()) ? ""+(ctx.getTimes(2).get(i)/1000.0) : "";
+			String qos0Str = (i < ctx.getTimesUs(0).size()) ? ""+(ctx.getTimesUs(0).get(i)/1000.0) : "";
+			String qos1Str = (i < ctx.getTimesUs(1).size()) ? ""+(ctx.getTimesUs(1).get(i)/1000.0) : "";
+			String qos2Str = (i < ctx.getTimesUs(2).size()) ? ""+(ctx.getTimesUs(2).get(i)/1000.0) : "";
 			
 			resultTimeValues.println(""+qos0Str+","+qos1Str+","+qos2Str);
 		}
@@ -284,26 +277,26 @@ public class DataPrinter {
 				long diffTime = (pair.getValue().getArrivalTime() - pair.getKey().getArrivalTime());
 				log.println("difftime(us) = " + diffTime);
 
-				ctx.getTimes(qos).add(diffTime);
+				ctx.getTimesUs(qos).add(diffTime);
 			}
 			log.println("**************************************************************************");
 
 			resultTimeStats.println("============================= QoS = "+qos+" ===============================");
 			double avg = 0;
 			double median = 0;
-			double max = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.max(ctx.getTimes(qos));
-			double min = ctx.getTimes(qos).size() == 0 ? Double.NaN : Collections.min(ctx.getTimes(qos));
-			for(long l : ctx.getTimes(qos)) {
+			double max = ctx.getTimesUs(qos).size() == 0 ? Double.NaN : Collections.max(ctx.getTimesUs(qos));
+			double min = ctx.getTimesUs(qos).size() == 0 ? Double.NaN : Collections.min(ctx.getTimesUs(qos));
+			for(long l : ctx.getTimesUs(qos)) {
 				avg += (double)l;
 			}
-			avg /= (double)ctx.getTimes(qos).size();
-			resultTimeStats.println(ctx.getTimes(qos));
+			avg /= (double)ctx.getTimesUs(qos).size();
+			resultTimeStats.println(ctx.getTimesUs(qos));
 			resultTimeStats.println("max(us)="+max+", max(ms)="+(max/1000.0)+", max(s)="+(max/(1000.0*1000.0)));
 			resultTimeStats.println("min(us)="+min+", min(ms)="+(min/1000.0)+", min(s)="+(min/(1000.0*1000.0)));
 			resultTimeStats.println("avg(us)="+avg+", avg(ms)="+(avg/1000.0)+", avg(s)="+(avg/(1000.0*1000.0)));
 
-			Collections.sort(ctx.getTimes(qos));
-			median = ctx.getTimes(qos).size() == 0 ? Double.NaN : ctx.getTimes(qos).get(ctx.getTimes(qos).size()/2);
+			Collections.sort(ctx.getTimesUs(qos));
+			median = ctx.getTimesUs(qos).size() == 0 ? Double.NaN : ctx.getTimesUs(qos).get(ctx.getTimesUs(qos).size()/2);
 			resultTimeStats.println("median(us)="+median+", median(ms)="+(median/1000.0)+", median(s)="+(median/(1000.0*1000.0)));
 			resultTimeStats.println("========================================================================");
 		}

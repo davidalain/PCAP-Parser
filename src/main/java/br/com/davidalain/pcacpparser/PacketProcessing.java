@@ -20,7 +20,7 @@ import io.pkts.packet.UDPPacket;
 import io.pkts.packet.impl.ApplicationPacket;
 import io.pkts.protocol.Protocol;
 
-public class PacketProcessingUtil {
+public class PacketProcessing {
 
 	public long getArrivalTime(final Packet packet) {
 		return packet.getArrivalTime();
@@ -555,8 +555,8 @@ public class PacketProcessingUtil {
 								//Note: this is a not safe check, because topic name and message can be equals each other (same content) or shorter than necessary to guarantee correct working
 								//The correct way to check is analyze if topic and message are into TCP payload at the their specific correct positions
 								if(
-										ArraysUtil.contains(applicationPacketArray, topic) &&
-										ArraysUtil.contains(applicationPacketArray, message))
+										Util.contains(applicationPacketArray, topic) &&
+										Util.contains(applicationPacketArray, message))
 								{
 
 									//This is the TCP Segment that broker uses to synchronize last MQTT Publish Message to another broker in the cluster
@@ -568,10 +568,10 @@ public class PacketProcessingUtil {
 
 								} else {
 
-									printer.log.println("ArraysUtil.contains(tcpPayloadArray, topic)="+ArraysUtil.contains(applicationPacketArray, topic));
+									printer.log.println("ArraysUtil.contains(tcpPayloadArray, topic)="+Util.contains(applicationPacketArray, topic));
 									printer.log.println(HexPrinter.toStringHexDump(topic));
 
-									printer.log.println("ArraysUtil.contains(tcpPayloadArray, message)="+ArraysUtil.contains(applicationPacketArray, message));
+									printer.log.println("ArraysUtil.contains(tcpPayloadArray, message)="+Util.contains(applicationPacketArray, message));
 									printer.log.println(HexPrinter.toStringHexDump(message));
 								}
 

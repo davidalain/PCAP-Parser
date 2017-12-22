@@ -6,7 +6,7 @@ import java.security.InvalidParameterException;
 import br.com.davidalain.pcacpparser.Context;
 import br.com.davidalain.pcacpparser.DataPrinter;
 import br.com.davidalain.pcacpparser.PacketBuffer;
-import br.com.davidalain.pcacpparser.PacketProcessingUtil;
+import br.com.davidalain.pcacpparser.PacketProcessing;
 import br.com.davidalain.pcapparser.mqtt.MQTTPacket;
 import io.pkts.PacketHandler;
 import io.pkts.Pcap;
@@ -29,7 +29,7 @@ public class MainPublishMessageRTT {
 		final Pcap pcap = Pcap.openStream(pcapFilePath);
 		final Context ctx = new Context(null, clientIP);
 		final DataPrinter printer = new DataPrinter(pcapFilePath);
-		final PacketProcessingUtil packetUtil = new PacketProcessingUtil();
+		final PacketProcessing packetUtil = new PacketProcessing();
 
 		pcap.loop(new PacketHandler() {
 			@Override

@@ -1,6 +1,6 @@
 package br.com.davidalain.pcapparser.mqtt;
 
-import br.com.davidalain.pcacpparser.ArraysUtil;
+import br.com.davidalain.pcacpparser.Util;
 
 public class MQTTPublishMessage extends MQTTPacket{
 
@@ -9,7 +9,7 @@ public class MQTTPublishMessage extends MQTTPacket{
 	}
 
 	public int getTopicLength() {
-		return ArraysUtil.toInt(data, 2, 2);
+		return Util.toInt(data, 2, 2);
 	}
 
 	public final byte[] getTopicArray() {
@@ -28,7 +28,7 @@ public class MQTTPublishMessage extends MQTTPacket{
 			return -1;
 		
 		int index = 4 + getTopicLength();
-		return ArraysUtil.toInt(data, index, 2);
+		return Util.toInt(data, index, 2);
 	}
 
 	public final byte[] getMessageArray() {
